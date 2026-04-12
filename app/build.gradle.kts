@@ -59,6 +59,9 @@ dependencies {
     // Gson para convertir el JSON del backend a Data Classes de Kotlin
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
+    // biometría para autenticación
+    implementation("androidx.biometric:biometric:1.1.0")
+
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

@@ -1,34 +1,78 @@
 package com.example.sifa_go.ui.navigation
 
 import androidx.camera.view.LifecycleCameraController
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.sifa_go.core.utils.BiometricHelper
+import com.example.sifa_go.core.utils.SessionManager
 import com.example.sifa_go.ui.components.MainLayout
 import com.example.sifa_go.ui.views.CameraScreen
 import com.example.sifa_go.ui.views.LoginScreen
-import com.example.sifa_go.ui.views.PreviewScreen
 import com.example.sifa_go.viewmodel.SifaViewModel
+import com.example.sifa_go.R
+
 
 @Composable
 fun AppNavigation() {
     // ENRUTADOR RAÍZ (Nivel 1): Solo decide entre Login o la App Principal
     val rootNavController = rememberNavController()
 
-    NavHost(navController = rootNavController, startDestination = "login") {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+
+
+    NavHost(navController = rootNavController, startDestination = "check_auth") {
+
+        // RUTA DE DECISIÓN (Invisible para el usuario)
+        composable("check_auth") {
+            LaunchedEffect(Unit) {
+                val token = sessionManager.getToken()
+                if (token == null) {
+                    // No hay sesión -> Al Login
+                    rootNavController.navigate("login") {
+                        popUpTo("check_auth") { inclusive = true }
+                    }
+                } else {
+                    // HAY SESIÓN -> Pedir huella de inmediato
+                    BiometricHelper.authenticate(
+                        context = context,
+                        onSuccess = {
+                            rootNavController.navigate("main_app") {
+                                popUpTo("check_auth") { inclusive = true }
+                            }
+                        },
+                        onError = { error ->
+                            // Si falla la huella o cancela, lo mandamos al login por seguridad
+                            // o puedes dejarlo en una pantalla de 'Reintentar Huella'
+                            rootNavController.navigate("login")
+                        }
+                    )
+                }
+            }
+
+            // Mientras decide, mostramos una pantalla de carga con tu logo
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Image(painter = painterResource(id = R.drawable.sifago_logo), contentDescription = null, modifier = Modifier.size(100.dp))
+            }
+        }
 
         // RUTA RAÍZ 1: Pantalla de Login (Pantalla completa, sin menús)
         composable("login") {
@@ -86,7 +130,6 @@ fun MainAppNavigation(
             startDestination = "scan",
             modifier = Modifier.padding(paddingValues)
         ) {
-            // --- TUS 4 RUTAS DE LA APP VAN AQUÍ ---
 
             composable("scan") {
                 CameraScreen(

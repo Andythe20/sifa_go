@@ -45,4 +45,17 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
+    fun loginWithBiometrics() {
+        // Revisamos si el usuario ya tiene una sesión iniciada y guardada
+        val savedToken = sessionManager.getToken()
+
+        if (savedToken != null) {
+            // Si hay token, lo dejamos entrar directamente
+            isLoginSuccessful = true
+        } else {
+            // Si no hay token, es la primera vez que usa la app. Debe usar contraseña.
+            loginError = "Primera vez: Por favor inicia sesión con correo y contraseña primero."
+        }
+    }
 }
