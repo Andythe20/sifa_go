@@ -1,127 +1,189 @@
 package com.example.sifa_go.ui.navigation
 
 import androidx.camera.view.LifecycleCameraController
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.sifa_go.core.utils.BiometricHelper
+import com.example.sifa_go.core.utils.SessionManager
 import com.example.sifa_go.ui.components.MainLayout
 import com.example.sifa_go.ui.views.CameraScreen
-import com.example.sifa_go.ui.views.PreviewScreen
+import com.example.sifa_go.ui.views.LoginScreen
 import com.example.sifa_go.viewmodel.SifaViewModel
+import com.example.sifa_go.R
+
 
 @Composable
-fun AppNavigation(
-    // Inyectamos el ViewModel aquí. Se mantendrá vivo mientras AppNavigation exista.
-    sifaViewModel: SifaViewModel = viewModel()
-) {
-    // El controlador que maneja el estado de las pantallas
-    val navController = rememberNavController()
+fun AppNavigation() {
+    // ENRUTADOR RAÍZ (Nivel 1): Solo decide entre Login o la App Principal
+    val rootNavController = rememberNavController()
 
-    // Obtenemos la ruta actual para que el MainLayout sepa qué ícono pintar de azul
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+
+
+    NavHost(navController = rootNavController, startDestination = "check_auth") {
+
+        // RUTA DE DECISIÓN (Invisible para el usuario)
+        composable("check_auth") {
+            LaunchedEffect(Unit) {
+                val token = sessionManager.getToken()
+                if (token == null) {
+                    // No hay sesión -> Al Login
+                    rootNavController.navigate("login") {
+                        popUpTo("check_auth") { inclusive = true }
+                    }
+                } else {
+                    // HAY SESIÓN -> Pedir huella de inmediato
+                    BiometricHelper.authenticate(
+                        context = context,
+                        onSuccess = {
+                            rootNavController.navigate("main_app") {
+                                popUpTo("check_auth") { inclusive = true }
+                            }
+                        },
+                        onError = { error ->
+                            // Si falla la huella o cancela, lo mandamos al login por seguridad
+                            // o puedes dejarlo en una pantalla de 'Reintentar Huella'
+                            rootNavController.navigate("login")
+                        }
+                    )
+                }
+            }
+
+            // Mientras decide, mostramos una pantalla de carga con tu logo
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Image(painter = painterResource(id = R.drawable.sifago_logo), contentDescription = null, modifier = Modifier.size(100.dp))
+            }
+        }
+
+        // RUTA RAÍZ 1: Pantalla de Login (Pantalla completa, sin menús)
+        composable("login") {
+            LoginScreen(
+                onLoginSuccess = {
+                    // Navegamos a la app principal y borramos el login del historial
+                    rootNavController.navigate("main_app") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // RUTA RAÍZ 2: El contenedor de toda tu aplicación principal
+        composable("main_app") {
+            // Llamamos a la función que contiene el MainLayout y el segundo enrutador
+            MainAppNavigation(
+                onLogout = {
+                    sessionManager.logout() // Borramos el token y el username del celular
+                    rootNavController.navigate("login") {
+                        // Limpiamos absolutamente todo el historial de pantallas para que no pueda volver con el botón "Atrás"
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+    }
+}
+@Composable
+fun MainAppNavigation(
+    sifaViewModel: SifaViewModel = viewModel(),
+    onLogout: () -> Unit
+) {
+    // ENRUTADOR DE PESTAÑAS: Maneja las vistas DENTRO del MainLayout
+    val tabsNavController = rememberNavController()
+
+    // Obtenemos la ruta actual para pintar de azul el ícono correcto en el footer
+    val navBackStackEntry by tabsNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: "scan"
 
+    // La cámara se crea aquí.
+    // Como estamos dentro de MainAppNavigation, la cámara sobrevivirá aunque pases al Historial y vuelvas.
     val context = LocalContext.current
     val cameraController = remember { LifecycleCameraController(context) }
 
-    // Envolvemos toda la navegación con tu Layout Principal
     MainLayout(
         title = "SIFA GO",
         currentRoute = currentRoute,
         onNavigate = { route ->
-            navController.navigate(route) {
-                // Evita crear múltiples copias de la misma pantalla al navegar
-                popUpTo(navController.graph.findStartDestination().id) {
-                    saveState = true
-                }
+            tabsNavController.navigate(route) {
+                // Evita crear un historial infinito al tocar los botones del menú
+                popUpTo(tabsNavController.graph.startDestinationId) { saveState = true }
                 launchSingleTop = true
                 restoreState = true
             }
         },
-        onBackClick = {
-            navController.popBackStack()
-        },
-        onProfileClick = {
-            navController.navigate("profile")
-        }
+        onBackClick = { tabsNavController.popBackStack() },
+        onProfileClick = { tabsNavController.navigate("profile") }
     ) { paddingValues ->
-        // Aquí adentro va el NavHost, fíjate que le pasamos el paddingValues
-        // Esto evita que tus vistas queden ocultas detrás del menú o el header
+
+        // El NavHost interno que dibuja las vistas respetando los márgenes del MainLayout
         NavHost(
-            navController = navController,
+            navController = tabsNavController,
             startDestination = "scan",
             modifier = Modifier.padding(paddingValues)
         ) {
-            // Ruta 1: Escanear
+
             composable("scan") {
                 CameraScreen(
+                    cameraController = cameraController, // Pasamos el controlador seguro
+                    sifaViewModel = sifaViewModel,
                     onPhotoConfirmed = { pathToUpload ->
-                        // 1. Guardamos la foto confirmada en el ViewModel
                         sifaViewModel.currentPhotoPath = pathToUpload
-
-                        // 2. Aquí llamaremos al backend con IA
                         println("Enviando foto al backend: $pathToUpload")
-
-                        // 3. Más adelante, aquí harás un navController.navigate("formulario_multa")
                     }
                 )
             }
 
-            // Ruta 2: Previsualización
-            composable("preview") {
-                // Recuperamos la ruta desde el ViewModel
-                val photoPath = sifaViewModel.currentPhotoPath
-
-                // Validamos que exista
-                if (photoPath != null) {
-                    PreviewScreen(
-                        photoPath = photoPath,
-                        onRetakePhoto = {
-                            sifaViewModel.clearProcess() // Limpiamos el rastro anterior
-                            navController.popBackStack() // Volvemos a la cámara
-                        },
-                        onSendPhoto = { pathToUpload ->
-                            // Aquí llamaremos a tu API de Laravel para procesar la imagen
-                            println("Enviando foto al backend: $pathToUpload")
-                        }
-                    )
-                } else {
-                    // Por si ocurre un error extraño, volvemos a la cámara
-                    navController.popBackStack()
-                }
-            }
-
-            // Ruta 3: Historial (Vista de prueba)
             composable("history") {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Pantalla de Historial en construcción")
                 }
             }
 
-            // Ruta 4: Reportes (Vista de prueba)
             composable("reports") {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Pantalla de Reportes en construcción")
                 }
             }
 
-            // Ruta 5: Perfil (Vista de prueba)
             composable("profile") {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Perfil del Fiscalizador")
+                /* TODO: esta vista debe tener su propio archivo, por ahora solo es de prueba */
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text("Perfil del Fiscalizador", modifier = Modifier.padding(bottom = 24.dp))
+
+                    // Botón de cerrar sesión con un color de error (rojo) por defecto en Material3
+                    Button(
+                        onClick = { onLogout() },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Cerrar Sesión")
+                    }
                 }
             }
         }

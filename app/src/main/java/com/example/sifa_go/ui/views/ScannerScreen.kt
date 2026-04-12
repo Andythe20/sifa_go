@@ -56,15 +56,13 @@ import java.util.concurrent.Executor
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun CameraScreen(
+    cameraController: LifecycleCameraController,
     sifaViewModel: SifaViewModel = viewModel(), // Inyectamos el ViewModel
     onPhotoConfirmed: (String) -> Unit
 ){
     val permissionState = rememberPermissionState(Manifest.permission.CAMERA)
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
-
-    // Controlador de cámara
-    val cameraController = remember { LifecycleCameraController(context) }
 
     // Ejecutor para manejar la captura de la foto en el hilo principal
     val mainExecutor = remember { ContextCompat.getMainExecutor(context) }
