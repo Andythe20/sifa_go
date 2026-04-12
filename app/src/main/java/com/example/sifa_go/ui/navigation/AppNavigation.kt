@@ -19,106 +19,98 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.sifa_go.ui.components.MainLayout
 import com.example.sifa_go.ui.views.CameraScreen
+import com.example.sifa_go.ui.views.LoginScreen
 import com.example.sifa_go.ui.views.PreviewScreen
 import com.example.sifa_go.viewmodel.SifaViewModel
 
 @Composable
-fun AppNavigation(
-    // Inyectamos el ViewModel aquí. Se mantendrá vivo mientras AppNavigation exista.
+fun AppNavigation() {
+    // ENRUTADOR RAÍZ (Nivel 1): Solo decide entre Login o la App Principal
+    val rootNavController = rememberNavController()
+
+    NavHost(navController = rootNavController, startDestination = "login") {
+
+        // RUTA RAÍZ 1: Pantalla de Login (Pantalla completa, sin menús)
+        composable("login") {
+            LoginScreen(
+                onLoginSuccess = {
+                    // Navegamos a la app principal y borramos el login del historial
+                    rootNavController.navigate("main_app") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // RUTA RAÍZ 2: El contenedor de toda tu aplicación principal
+        composable("main_app") {
+            // Llamamos a la función que contiene el MainLayout y el segundo enrutador
+            MainAppNavigation()
+        }
+    }
+}
+@Composable
+fun MainAppNavigation(
     sifaViewModel: SifaViewModel = viewModel()
 ) {
-    // El controlador que maneja el estado de las pantallas
-    val navController = rememberNavController()
+    // ENRUTADOR DE PESTAÑAS: Maneja las vistas DENTRO del MainLayout
+    val tabsNavController = rememberNavController()
 
-    // Obtenemos la ruta actual para que el MainLayout sepa qué ícono pintar de azul
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    // Obtenemos la ruta actual para pintar de azul el ícono correcto en el footer
+    val navBackStackEntry by tabsNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: "scan"
 
+    // La cámara se crea aquí.
+    // Como estamos dentro de MainAppNavigation, la cámara sobrevivirá aunque pases al Historial y vuelvas.
     val context = LocalContext.current
     val cameraController = remember { LifecycleCameraController(context) }
 
-    // Envolvemos toda la navegación con tu Layout Principal
     MainLayout(
         title = "SIFA GO",
         currentRoute = currentRoute,
         onNavigate = { route ->
-            navController.navigate(route) {
-                // Evita crear múltiples copias de la misma pantalla al navegar
-                popUpTo(navController.graph.findStartDestination().id) {
-                    saveState = true
-                }
+            tabsNavController.navigate(route) {
+                // Evita crear un historial infinito al tocar los botones del menú
+                popUpTo(tabsNavController.graph.startDestinationId) { saveState = true }
                 launchSingleTop = true
                 restoreState = true
             }
         },
-        onBackClick = {
-            navController.popBackStack()
-        },
-        onProfileClick = {
-            navController.navigate("profile")
-        }
+        onBackClick = { tabsNavController.popBackStack() },
+        onProfileClick = { tabsNavController.navigate("profile") }
     ) { paddingValues ->
-        // Aquí adentro va el NavHost, fíjate que le pasamos el paddingValues
-        // Esto evita que tus vistas queden ocultas detrás del menú o el header
+
+        // El NavHost interno que dibuja las vistas respetando los márgenes del MainLayout
         NavHost(
-            navController = navController,
+            navController = tabsNavController,
             startDestination = "scan",
             modifier = Modifier.padding(paddingValues)
         ) {
-            // Ruta 1: Escanear
+            // --- TUS 4 RUTAS DE LA APP VAN AQUÍ ---
+
             composable("scan") {
                 CameraScreen(
+                    cameraController = cameraController, // Pasamos el controlador seguro
+                    sifaViewModel = sifaViewModel,
                     onPhotoConfirmed = { pathToUpload ->
-                        // 1. Guardamos la foto confirmada en el ViewModel
                         sifaViewModel.currentPhotoPath = pathToUpload
-
-                        // 2. Aquí llamaremos al backend con IA
                         println("Enviando foto al backend: $pathToUpload")
-
-                        // 3. Más adelante, aquí harás un navController.navigate("formulario_multa")
                     }
                 )
             }
 
-            // Ruta 2: Previsualización
-            composable("preview") {
-                // Recuperamos la ruta desde el ViewModel
-                val photoPath = sifaViewModel.currentPhotoPath
-
-                // Validamos que exista
-                if (photoPath != null) {
-                    PreviewScreen(
-                        photoPath = photoPath,
-                        onRetakePhoto = {
-                            sifaViewModel.clearProcess() // Limpiamos el rastro anterior
-                            navController.popBackStack() // Volvemos a la cámara
-                        },
-                        onSendPhoto = { pathToUpload ->
-                            // Aquí llamaremos a tu API de Laravel para procesar la imagen
-                            println("Enviando foto al backend: $pathToUpload")
-                        }
-                    )
-                } else {
-                    // Por si ocurre un error extraño, volvemos a la cámara
-                    navController.popBackStack()
-                }
-            }
-
-            // Ruta 3: Historial (Vista de prueba)
             composable("history") {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Pantalla de Historial en construcción")
                 }
             }
 
-            // Ruta 4: Reportes (Vista de prueba)
             composable("reports") {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Pantalla de Reportes en construcción")
                 }
             }
 
-            // Ruta 5: Perfil (Vista de prueba)
             composable("profile") {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Perfil del Fiscalizador")
