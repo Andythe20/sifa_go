@@ -2,10 +2,15 @@ package com.example.sifa_go.ui.navigation
 
 import androidx.camera.view.LifecycleCameraController
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -89,13 +94,22 @@ fun AppNavigation() {
         // RUTA RAÍZ 2: El contenedor de toda tu aplicación principal
         composable("main_app") {
             // Llamamos a la función que contiene el MainLayout y el segundo enrutador
-            MainAppNavigation()
+            MainAppNavigation(
+                onLogout = {
+                    sessionManager.logout() // Borramos el token y el username del celular
+                    rootNavController.navigate("login") {
+                        // Limpiamos absolutamente todo el historial de pantallas para que no pueda volver con el botón "Atrás"
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }
 @Composable
 fun MainAppNavigation(
-    sifaViewModel: SifaViewModel = viewModel()
+    sifaViewModel: SifaViewModel = viewModel(),
+    onLogout: () -> Unit
 ) {
     // ENRUTADOR DE PESTAÑAS: Maneja las vistas DENTRO del MainLayout
     val tabsNavController = rememberNavController()
@@ -155,8 +169,21 @@ fun MainAppNavigation(
             }
 
             composable("profile") {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Perfil del Fiscalizador")
+                /* TODO: esta vista debe tener su propio archivo, por ahora solo es de prueba */
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text("Perfil del Fiscalizador", modifier = Modifier.padding(bottom = 24.dp))
+
+                    // Botón de cerrar sesión con un color de error (rojo) por defecto en Material3
+                    Button(
+                        onClick = { onLogout() },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Cerrar Sesión")
+                    }
                 }
             }
         }
