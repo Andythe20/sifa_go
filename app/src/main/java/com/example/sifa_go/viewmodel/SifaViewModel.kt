@@ -20,18 +20,23 @@ class SifaViewModel : ViewModel() {
 
     // variables para manejar el estado de la API
     var isLoading by mutableStateOf(false)
-    var rawJsonResponse by mutableStateOf<String?>(null)
+    var detectedPlate by mutableStateOf<String?>(null)
+    var detectionError by mutableStateOf<String?>(null)
 
     // Función para limpiar los datos cuando se termine una multa o se cancele
     fun clearProcess() {
         currentPhotoPath = null
-        rawJsonResponse = null
+        detectedPlate = null
+        detectionError = null
     }
 
     // Función para enviar la imagen
     fun uploadImageToBackend(filePath: String) {
         viewModelScope.launch {
             isLoading = true
+            // Limpiamos estados anteriores
+            detectedPlate = null
+            detectionError = null
             try {
                 val file = File(filePath)
 
@@ -42,18 +47,21 @@ class SifaViewModel : ViewModel() {
                 // Hacemos la llamada a la API
                 val response = RetrofitClient.apiService.detectPlate(body)
 
-                // De la respuesta sacamos el primer elemento (si existe) y obtenemos la patente
-                val patenteDetectada = response.result.firstOrNull()?.plate ?: "No detectada"
+                // Verificamos si la IA encontró una patente en la foto
+                val plateResult = response.result.firstOrNull()
 
-                println("¡La patente detectada es: $patenteDetectada!")
-
-                // Convertimos la respuesta a JSON formateado para mostrarlo en pantalla
-                val gson = GsonBuilder().setPrettyPrinting().create()
-                rawJsonResponse = gson.toJson(response)
+                if (plateResult != null && plateResult.success && !plateResult.plate.isNullOrEmpty()) {
+                    // IA exitosa
+                    detectedPlate = plateResult.plate
+                } else {
+                    // La IA respondió, pero no encontró ninguna patente legible en la foto
+                    detectionError = "No se logró leer la patente en la fotografía."
+                }
 
             } catch (e: Exception) {
-                // Si falla (por ej. si el PC está apagado), mostramos el error
-                rawJsonResponse = "Error de conexión: ${e.message}"
+                // Falla de red, PC apagado, timeout, etc.
+                detectionError = "Error de conexión con el motor de IA. Comprueba tu red."
+                println(e)
             } finally {
                 isLoading = false
             }
