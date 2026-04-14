@@ -83,13 +83,7 @@ fun CameraScreen(
             CircularProgressIndicator()
             Text("Procesando imagen con IA...", modifier = Modifier.padding(top = 60.dp))
         }
-<<<<<<< Updated upstream
-    } else if (sifaViewModel.rawJsonResponse != null) {
-        // VISTA DEL RESULTADO JSON
-        Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            Text(text = sifaViewModel.rawJsonResponse ?: "")
-=======
-    } else if (coreViewModel.vehicleData != null) {
+    }  else if (coreViewModel.vehicleData != null) {
         // VISTA DE INFORMACIÓN DEL VEHÍCULO
         VehicleInfoScreen(
             vehicleData = coreViewModel.vehicleData!!,
@@ -125,7 +119,6 @@ fun CameraScreen(
         // Si devolvió datos, los imprimimos temporalmente (luego haremos una vista linda para esto)
         if (coreViewModel.vehicleData != null) {
             Text("Vehículo: ${coreViewModel.vehicleData?.marca} ${coreViewModel.vehicleData?.modelo}")
->>>>>>> Stashed changes
         }
     } else if (capturedPhotoPath != null) {
 

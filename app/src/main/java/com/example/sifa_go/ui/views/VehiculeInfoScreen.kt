@@ -59,6 +59,8 @@ fun VehicleInfoScreen(
                 text = "CONSULTA DEL VEHÍCULO",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.titleMedium
             )
         }
         // Título Principal
