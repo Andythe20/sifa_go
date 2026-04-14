@@ -43,8 +43,8 @@ fun VehicleInfoScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .background(MaterialTheme.colorScheme.background),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Titulo pequeño encima
@@ -52,15 +52,13 @@ fun VehicleInfoScreen(
             verticalAlignment =  Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start,
             modifier = Modifier
-                .padding(top = 8.dp)
+                .padding(top = 20.dp, start = 15.dp)
                 .fillMaxWidth()
         ) {
             Text(
                 text = "CONSULTA DEL VEHÍCULO",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.labelLarge
             )
         }
         // Título Principal
@@ -68,21 +66,21 @@ fun VehicleInfoScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start,
             modifier = Modifier
-                .padding(bottom = 16.dp)
+                .padding(bottom = 16.dp, start = 15.dp)
                 .fillMaxWidth()
         ) {
             Text(
                 text = "FICHA DEL VEHÍCULO",
-                fontSize = 25.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.headlineMedium
             )
         }
 
         // Tarjeta principal con la patente y el año
         Card(
             modifier = Modifier
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .padding(start = 15.dp, end = 15.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
@@ -179,7 +177,11 @@ fun VehicleInfoScreen(
         Spacer(modifier = Modifier.height(40.dp))
 
         // Botones de acción
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 15.dp, end = 15.dp)
+        ) {
             Button(
                 onClick = onIssueFineClick,
                 modifier = Modifier
@@ -203,7 +205,7 @@ fun VehicleInfoScreen(
                         text = "EMITIR INFRACCIÓN",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -217,7 +219,9 @@ fun VehicleInfoScreen(
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Text("NUEVO ESCANEO")
+                Text(text = "NUEVO ESCANEO",
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }
@@ -231,7 +235,8 @@ fun InfoCard(label: String, value: String, value2: String? = null) {
 
     Card(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .padding(start = 15.dp, end = 15.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Gray.copy(alpha = 0.05f))
     ) {
         Row(
@@ -242,10 +247,9 @@ fun InfoCard(label: String, value: String, value2: String? = null) {
         ) {
             Text(
                 text = label,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
                 color = Color.DarkGray.copy(alpha = 0.7f),
-                modifier = Modifier.padding(start = 16.dp)
+                modifier = Modifier.padding(start = 16.dp),
+                style = MaterialTheme.typography.labelMedium
             )
         }
 
@@ -257,10 +261,9 @@ fun InfoCard(label: String, value: String, value2: String? = null) {
         ) {
             Text(
                 text = value,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 16.dp)
+                modifier = Modifier.padding(start = 16.dp),
+                style = MaterialTheme.typography.titleLarge
             )
         }
 
@@ -273,10 +276,9 @@ fun InfoCard(label: String, value: String, value2: String? = null) {
             ) {
                 Text(
                     text = value2,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp)
+                    modifier = Modifier.padding(start = 16.dp),
+                    style = MaterialTheme.typography.titleLarge
                 )
             }
         }
