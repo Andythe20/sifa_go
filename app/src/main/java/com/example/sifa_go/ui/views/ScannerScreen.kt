@@ -44,6 +44,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.sifa_go.viewmodel.CoreViewModel
 import com.example.sifa_go.viewmodel.SifaViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -58,6 +59,7 @@ import java.util.concurrent.Executor
 fun CameraScreen(
     cameraController: LifecycleCameraController,
     sifaViewModel: SifaViewModel = viewModel(), // Inyectamos el ViewModel
+    coreViewModel: CoreViewModel = viewModel(),
     onPhotoConfirmed: (String) -> Unit
 ){
     val permissionState = rememberPermissionState(Manifest.permission.CAMERA)
@@ -81,10 +83,49 @@ fun CameraScreen(
             CircularProgressIndicator()
             Text("Procesando imagen con IA...", modifier = Modifier.padding(top = 60.dp))
         }
+<<<<<<< Updated upstream
     } else if (sifaViewModel.rawJsonResponse != null) {
         // VISTA DEL RESULTADO JSON
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             Text(text = sifaViewModel.rawJsonResponse ?: "")
+=======
+    } else if (coreViewModel.vehicleData != null) {
+        // VISTA DE INFORMACIÓN DEL VEHÍCULO
+        VehicleInfoScreen(
+            vehicleData = coreViewModel.vehicleData!!,
+            onIssueFineClick = {
+                // TODO: Aquí navegaremos al formulario de multa más adelante
+                println("Ir al formulario de multa...")
+            },
+            onNewScanClick = {
+                // Limpiamos AMBOS ViewModel para reiniciar todo desde cero
+                sifaViewModel.clearProcess()
+                coreViewModel.clearData()
+            }
+        )
+    } else if (sifaViewModel.detectedPlate != null || sifaViewModel.detectionError != null) {
+        // VISTA DEL RESULTADO DE LA PATENTE
+        PlateResultScreen(
+            initialPlate = sifaViewModel.detectedPlate,
+            errorMessage = sifaViewModel.detectionError ?: coreViewModel.errorMessage, // Mostramos error de IA o del Core
+            isLoading = coreViewModel.isLoading, // Le pasamos el estado de carga del Core API
+            onConsultClick = { finalPlate ->
+                coreViewModel.fetchVehicleInfo(finalPlate)
+            },
+            onRetakePhoto = {
+                sifaViewModel.clearProcess()
+                coreViewModel.clearData()
+            }
+        )
+
+        // Si el CoreViewModel está cargando, mostramos un feedback
+        if (coreViewModel.isLoading) {
+            Text("Consultando base de datos nacional...")
+        }
+        // Si devolvió datos, los imprimimos temporalmente (luego haremos una vista linda para esto)
+        if (coreViewModel.vehicleData != null) {
+            Text("Vehículo: ${coreViewModel.vehicleData?.marca} ${coreViewModel.vehicleData?.modelo}")
+>>>>>>> Stashed changes
         }
     } else if (capturedPhotoPath != null) {
 
