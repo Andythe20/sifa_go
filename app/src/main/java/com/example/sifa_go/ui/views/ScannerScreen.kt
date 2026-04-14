@@ -93,6 +93,7 @@ fun CameraScreen(
             },
             onNewScanClick = {
                 // Limpiamos AMBOS ViewModel para reiniciar todo desde cero
+                capturedPhotoPath = null
                 sifaViewModel.clearProcess()
                 coreViewModel.clearData()
             }
@@ -107,6 +108,7 @@ fun CameraScreen(
                 coreViewModel.fetchVehicleInfo(finalPlate)
             },
             onRetakePhoto = {
+                capturedPhotoPath = null
                 sifaViewModel.clearProcess()
                 coreViewModel.clearData()
             }
