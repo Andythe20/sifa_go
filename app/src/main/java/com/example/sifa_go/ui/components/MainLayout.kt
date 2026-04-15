@@ -44,17 +44,24 @@ fun MainLayout(
         BottomNavItem("Perfil", Icons.Filled.Person, "profile")
     )
 
+    // Identificamos si la ruta actual es una pestaña principal, ya que las vistas raíz
+    // no deben tener la opción de navegar hacia atrás
+    val isRootTab = bottomNavItems.any { it.route == currentRoute }
+
     Scaffold (
         topBar = {
             TopAppBar(
                 title = { Text(text = title) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        // Usamos AutoMirrored para soporte RTL automático si es necesario
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver atrás"
-                        )
+                    // Solo mostramos la flecha si NO estamos en una pestaña raíz
+                    if (!isRootTab) {
+                        IconButton(onClick = onBackClick) {
+                            // Usamos AutoMirrored para soporte RTL automático si es necesario
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver atrás"
+                            )
+                        }
                     }
                 },
                 actions = {
