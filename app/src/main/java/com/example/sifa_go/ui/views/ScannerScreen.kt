@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.util.Log
 import android.view.ViewGroup
+import androidx.activity.compose.BackHandler
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.view.LifecycleCameraController
@@ -71,6 +72,22 @@ fun CameraScreen(
 
     // ¿Tenemos una foto temporal para revisar?
     var capturedPhotoPath by remember { mutableStateOf<String?>(null) }
+
+    // Verificamos si hay algún proceso activo en pantalla que no sea la cámara en vivo
+    val isShowingProcess = sifaViewModel.isLoading ||
+            sifaViewModel.detectedPlate != null ||
+            sifaViewModel.detectionError != null ||
+            coreViewModel.vehicleData != null ||
+            capturedPhotoPath != null
+
+    // Interceptamos el botón físico "Atrás" del celular
+    BackHandler(enabled = isShowingProcess) {
+        // Si estaba viendo una foto, la patente, o el vehículo, limpiamos la memoria
+        // Esto hará que el flujo caiga automáticamente en el "else" (la vista de la cámara)
+        sifaViewModel.clearProcess()
+        coreViewModel.clearData()
+        capturedPhotoPath = null
+    }
 
     LaunchedEffect(Unit) {
         permissionState.launchPermissionRequest()
