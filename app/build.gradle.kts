@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.sifa_go"
+    namespace = "com.sifa.sifa_go"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.sifa_go"
+        applicationId = "com.sifa.sifa_go"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
