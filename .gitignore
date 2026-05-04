@@ -16,6 +16,7 @@ local.properties
 .idea/modules.xml
 .idea/navEditor.xml
 .idea/assetWizardSettings.xml
+.idea/deploymentTargetSelector.xml
 
 # ===== Sistema =====
 .DS_Store
