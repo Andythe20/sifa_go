@@ -11,7 +11,6 @@ import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.LoginRequest
 import kotlinx.coroutines.launch
 
-// Usamos AndroidViewModel para poder tener acceso al Contexto de la app y usar SharedPreferences
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     private val sessionManager = SessionManager(application)
@@ -25,21 +24,47 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             isLoading = true
             loginError = null
             try {
-                // Creamos la petición JSON
-                val request = LoginRequest(username = email, password = pass)
-                // Llamamos a Python
+                val request = LoginRequest(email = email, password = pass)
                 val response = AuthRetrofitClient.apiService.login(request)
 
-                // ¡ÉXITO! Guardamos el token y el username en el celular
-                sessionManager.saveSession(token = response.token, username = response.username)
-
-                // Disparamos la navegación
-                isLoginSuccessful = true
+                when (response.code()) {
+                    200 -> {
+                        val body = response.body()!!
+                        sessionManager.saveSession(token = body.accessToken, username = body.sub)
+                        isLoginSuccessful = true
+                    }
+                    400 -> {
+                        loginError = "Solicitud inválida. Verifica los datos ingresados."
+                    }
+                    401 -> {
+                        loginError = "Credenciales incorrectas. Verifica tu email y contraseña."
+                    }
+                    403 -> {
+                        loginError = "Acceso denegado. Tu cuenta ha sido suspendida o bloqueada."
+                    }
+                    404 -> {
+                        loginError = "Servicio no encontrado. Contacta al administrador."
+                    }
+                    408, 504 -> {
+                        loginError = "Tiempo de espera agotado. Verifica tu conexión a internet."
+                    }
+                    409 -> {
+                        loginError = "Conflicto en la solicitud. Intenta nuevamente."
+                    }
+                    500 -> {
+                        loginError = "Error del servidor. Intenta más tarde."
+                    }
+                    else -> {
+                        loginError = "Error inesperado (${response.code()}). Intenta nuevamente."
+                    }
+                }
 
             } catch (e: Exception) {
-                // Si la credencial es incorrecta o falla la red
-                loginError = "Credenciales incorrectas o error de red"
-                println(e)
+                loginError = when {
+                    e.message?.contains("Unable to resolve host") == true -> "Sin conexión a internet. Verifica tu red."
+                    e.message?.contains("timeout") == true -> "Tiempo de conexión agotado. Intenta nuevamente."
+                    else -> "Error de conexión. Verifica tu internet e intenta más tarde."
+                }
             } finally {
                 isLoading = false
             }
@@ -47,14 +72,11 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loginWithBiometrics() {
-        // Revisamos si el usuario ya tiene una sesión iniciada y guardada
         val savedToken = sessionManager.getToken()
 
         if (savedToken != null) {
-            // Si hay token, lo dejamos entrar directamente
             isLoginSuccessful = true
         } else {
-            // Si no hay token, es la primera vez que usa la app. Debe usar contraseña.
             loginError = "Primera vez: Por favor inicia sesión con correo y contraseña primero."
         }
     }

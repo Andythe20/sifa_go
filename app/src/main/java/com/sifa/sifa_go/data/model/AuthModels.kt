@@ -1,14 +1,20 @@
 package com.sifa.sifa_go.data.model
 
-// Lo que enviamos a la api de auth service
 data class LoginRequest(
-    val username: String, // el email irá aquí
+    val email: String,
     val password: String
 )
 
-// Lo que recibimos de la api de auth service
 data class LoginResponse(
-    val message: String,
-    val token: String,
-    val username: String
+    val accessToken: String,
+    val tokenType: String,
+    val sub: String,
+    val iat: Long,
+    val exp: Long,
+    val roles: List<String>
 )
+
+sealed class LoginResult {
+    data class Success(val token: String, val email: String, val roles: List<String>) : LoginResult()
+    data class Error(val code: Int, val message: String) : LoginResult()
+}
