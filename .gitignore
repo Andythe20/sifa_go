@@ -1,15 +1,48 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# ===== Android / Gradle =====
+.gradle/
+build/
+*/build/
 local.properties
+
+# ===== IDE (Android Studio / IntelliJ) =====
+.idea/
+*.iml
+*.iws
+
+# Archivos específicos dentro de .idea (por si decides trackear algunos)
+.idea/caches/
+.idea/libraries/
+.idea/workspace.xml
+.idea/modules.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/deploymentTargetSelector.xml
+
+# ===== Sistema =====
+.DS_Store
+
+# ===== APK / outputs =====
+*.apk
+*.aab
+*.ap_
+
+# ===== Java / Kotlin =====
+*.class
+*.log
+hs_err_pid*
+
+# ===== Archivos comprimidos =====
+*.zip
+*.tar.gz
+*.rar
+
+# ===== NDK / C++ =====
+.externalNativeBuild/
+.cxx/
+
+# ===== Capturas =====
+captures/
+
+# ===== Keystore (IMPORTANTE no subirlos) =====
+*.jks
+*.keystore
