@@ -50,6 +50,7 @@ import com.sifa.sifa_go.viewmodel.SifaViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.sifa.sifa_go.core.utils.ImageUtils
 import java.io.File
 import java.util.concurrent.Executor
 
@@ -335,11 +336,5 @@ fun ScannerOverlay(modifier: Modifier = Modifier) {
 
 // guardar foto tomada en carpeta privada.
 private fun savePhotoToPersistentStorage(context: Context, tempFile: File): String {
-    val persistentFolder = File(context.filesDir, "evidencia_multas")
-    if (!persistentFolder.exists()) persistentFolder.mkdirs()
-
-    val permanentFile = File(persistentFolder, "patente_${System.currentTimeMillis()}.jpg")
-    tempFile.copyTo(permanentFile, overwrite = true)
-
-    return permanentFile.absolutePath
+    return ImageUtils.compressImage(context, tempFile)
 }
