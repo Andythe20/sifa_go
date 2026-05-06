@@ -63,7 +63,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 loginError = when {
                     e.message?.contains("Unable to resolve host") == true -> "Sin conexión a internet. Verifica tu red."
                     e.message?.contains("timeout") == true -> "Tiempo de conexión agotado. Intenta nuevamente."
-                    else -> "Error de conexión. Verifica tu internet e intenta más tarde."
+                    else -> "Error: " + e.message // TODO: Quitar detalles técnicos en producción y mostrar mensaje genérico "Error de conexión. Intenta nuevamente."
                 }
             } finally {
                 isLoading = false
