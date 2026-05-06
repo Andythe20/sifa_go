@@ -1,6 +1,7 @@
 package com.sifa.sifa_go.ui.components
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
@@ -17,9 +18,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 
-// Data class para manejar los items del menú de forma limpia
 data class BottomNavItem(
     val title: String,
     val icon: ImageVector,
@@ -32,11 +33,10 @@ fun MainLayout(
     title: String = "",
     onBackClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
-    currentRoute: String = "scan", // Ruta actual para marcar el ícono activo
-    onNavigate: (String) -> Unit = {}, // Función para cambiar de vista
+    currentRoute: String = "scan",
+    onNavigate: (String) -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
-    // Definimos las 4 opciones de tu menú inferior
     val bottomNavItems = listOf(
         BottomNavItem("Escanear", Icons.Filled.CameraAlt, "scan"),
         BottomNavItem("Historial", Icons.Filled.History, "history"),
@@ -44,8 +44,6 @@ fun MainLayout(
         BottomNavItem("Perfil", Icons.Filled.Person, "profile")
     )
 
-    // Identificamos si la ruta actual es una pestaña principal, ya que las vistas raíz
-    // no deben tener la opción de navegar hacia atrás
     val isRootTab = bottomNavItems.any { it.route == currentRoute }
 
     Scaffold (
@@ -53,10 +51,8 @@ fun MainLayout(
             TopAppBar(
                 title = { Text(text = title) },
                 navigationIcon = {
-                    // Solo mostramos la flecha si NO estamos en una pestaña raíz
                     if (!isRootTab) {
                         IconButton(onClick = onBackClick) {
-                            // Usamos AutoMirrored para soporte RTL automático si es necesario
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Volver atrás"
@@ -87,7 +83,6 @@ fun MainLayout(
             }
         }
     ) { paddingValues ->
-        // Aquí adentro se inyectará la vista que corresponda (como tu CameraScreen)
         content(paddingValues)
     }
 }

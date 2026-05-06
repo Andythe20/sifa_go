@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
@@ -26,9 +27,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.sifa.sifa_go.core.network.NetworkStatus
+import com.sifa.sifa_go.core.network.rememberNetworkStatus
 import com.sifa.sifa_go.core.utils.BiometricHelper
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.ui.components.MainLayout
+import com.sifa.sifa_go.ui.components.NetworkBanner
 import com.sifa.sifa_go.ui.views.CameraScreen
 import com.sifa.sifa_go.ui.views.LoginScreen
 import com.sifa.sifa_go.viewmodel.SifaViewModel
@@ -43,8 +47,17 @@ fun AppNavigation() {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
 
+    // Observador de red global - disponible en todas las pantallas
+    val networkStatus = rememberNetworkStatus()
 
-    NavHost(navController = rootNavController, startDestination = "check_auth") {
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Banner de red global - aparece en todas las vistas
+        NetworkBanner(
+            networkStatus = networkStatus.value,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        NavHost(navController = rootNavController, startDestination = "check_auth") {
 
         // RUTA DE DECISIÓN (Invisible para el usuario)
         composable("check_auth") {
@@ -104,8 +117,10 @@ fun AppNavigation() {
                 }
             )
         }
+        }
     }
 }
+
 @Composable
 fun MainAppNavigation(
     sifaViewModel: SifaViewModel = viewModel(),

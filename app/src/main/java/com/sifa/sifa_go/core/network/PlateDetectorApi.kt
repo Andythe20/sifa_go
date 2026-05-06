@@ -11,7 +11,7 @@ import retrofit2.http.Part
 // 1. Definimos la ruta de la solicitud
 interface SifaApiService {
     @Multipart
-    @POST("detect")
+    @POST("/plate/api/v1/detect")
     suspend fun detectPlate(
         @Part file: MultipartBody.Part
     ): DetectionRootResponse // Esperamos una lista como respuesta
