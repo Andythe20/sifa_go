@@ -17,7 +17,7 @@ object AuthRetrofitClient {
     // Puerto 8081 para el Fake Auth Service
     // Modificar ip dependiendo a qué red te conectes
     // En local tanto tu móvil como el pc deben estar conectados al mismo wi-fi
-    private const val BASE_URL = "http://3.217.199.134/"
+    private const val BASE_URL = "http://192.168.100.75:9000/"
 
     val apiService: AuthApiService by lazy {
         Retrofit.Builder()
