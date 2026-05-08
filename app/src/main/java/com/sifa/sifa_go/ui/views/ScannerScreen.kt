@@ -120,9 +120,14 @@ fun CameraScreen(
         // VISTA DEL RESULTADO DE LA PATENTE
         PlateResultScreen(
             initialPlate = sifaViewModel.detectedPlate,
-            errorMessage = sifaViewModel.detectionError ?: coreViewModel.errorMessage, // Mostramos error de IA o del Core
+            errorMessage = coreViewModel.errorMessage ?: sifaViewModel.detectionError, // Mostramos error de IA o del Core
             isLoading = coreViewModel.isLoading, // Le pasamos el estado de carga del Core API
             onConsultClick = { finalPlate ->
+                // Borramos errores anteriores por el plate detector service en caso de que core service devuelva uno.
+                sifaViewModel.detectedPlate = finalPlate
+                sifaViewModel.detectionError = null
+
+                // Disparamos la consulta al Core
                 coreViewModel.fetchVehicleInfo(finalPlate)
             },
             onRetakePhoto = {
