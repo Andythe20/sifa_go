@@ -62,6 +62,9 @@ dependencies {
     // biometría para autenticación
     implementation("androidx.biometric:biometric:1.1.0")
 
+    // Necesario para corregir la rotación de las fotos
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
+
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
