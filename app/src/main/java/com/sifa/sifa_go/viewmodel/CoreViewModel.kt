@@ -32,7 +32,7 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
                 // 2. Hacemos la petición añadiendo "Bearer " al inicio del token
                 val response = CoreRetrofitClient.apiService.getPlateInfo(
                     token = "Bearer $token",
-                    plate = plate
+                    id = plate
                 )
 
                 // 3. Guardamos los datos recibidos
