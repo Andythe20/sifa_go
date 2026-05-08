@@ -130,7 +130,7 @@ fun VehicleInfoScreen(
                             .fillMaxWidth()
                     ) {
                         Text(
-                            text = vehicleData.plate,
+                            text = vehicleData.patente,
                             fontSize = 40.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -167,12 +167,12 @@ fun VehicleInfoScreen(
         Spacer(modifier = Modifier.height(6.dp))
 
         // tarjeta con el nro chasis
-        InfoCard("NRO CHASIS", vehicleData.nro_chasis)
+        InfoCard("NRO CHASIS", vehicleData.nro_serie)
 
         Spacer(modifier = Modifier.height(6.dp))
 
         // tarjeta con el propietario y rut
-        InfoCard("PROPIETARIO / RUT", vehicleData.nom_propietario, vehicleData.rut_propietario)
+        InfoCard("PROPIETARIO / RUT", vehicleData.propietario, vehicleData.rut)
 
         Spacer(modifier = Modifier.height(40.dp))
 
@@ -302,15 +302,15 @@ fun VehicleInfoScreenPreview() {
         // 3. Llamas a tu vista pasándole "Datos Falsos" (Mocks) para que tenga qué dibujar
         VehicleInfoScreen(
             vehicleData = PlateInfoResponse(
-                plate = "GKSB78",
+                patente = "GKSB78",
                 marca = "TOYOTA",
                 modelo = "YARIS",
                 anio_fabricacion = 2020,
                 color = "ROJO",
                 nro_motor = "1NZFE1234567",
-                nro_chasis = "JTD1234567890",
-                rut_propietario = "12.345.678-9",
-                nom_propietario = "JUAN PEREZ"
+                nro_serie = "JTD1234567890",
+                rut = "12.345.678-9",
+                propietario = "JUAN PEREZ"
             ),
             onIssueFineClick = {}, // Funciones vacías porque aquí no hay lógica
             onNewScanClick = {}
