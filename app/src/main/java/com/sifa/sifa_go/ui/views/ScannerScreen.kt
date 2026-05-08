@@ -136,10 +136,6 @@ fun CameraScreen(
         if (coreViewModel.isLoading) {
             Text("Consultando base de datos nacional...")
         }
-        // Si devolvió datos, los imprimimos temporalmente (luego haremos una vista linda para esto)
-        if (coreViewModel.vehicleData != null) {
-            Text("Vehículo: ${coreViewModel.vehicleData?.marca} ${coreViewModel.vehicleData?.modelo}")
-        }
     } else if (capturedPhotoPath != null) {
 
         // VISTA 1: PREVISUALIZACIÓN
