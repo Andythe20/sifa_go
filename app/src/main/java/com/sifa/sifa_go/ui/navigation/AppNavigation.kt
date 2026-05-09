@@ -37,6 +37,8 @@ import com.sifa.sifa_go.ui.views.CameraScreen
 import com.sifa.sifa_go.ui.views.LoginScreen
 import com.sifa.sifa_go.viewmodel.SifaViewModel
 import com.sifa.sifa_go.R
+import com.sifa.sifa_go.ui.views.CreditsScreen
+import com.sifa.sifa_go.ui.views.HelpScreen
 
 
 @Composable
@@ -59,64 +61,88 @@ fun AppNavigation() {
 
         NavHost(navController = rootNavController, startDestination = "check_auth") {
 
-        // RUTA DE DECISIÓN (Invisible para el usuario)
-        composable("check_auth") {
-            LaunchedEffect(Unit) {
-                val token = sessionManager.getToken()
-                if (token == null) {
-                    // No hay sesión -> Al Login
-                    rootNavController.navigate("login") {
-                        popUpTo("check_auth") { inclusive = true }
-                    }
-                } else {
-                    // HAY SESIÓN -> Pedir huella de inmediato
-                    BiometricHelper.authenticate(
-                        context = context,
-                        onSuccess = {
-                            rootNavController.navigate("main_app") {
-                                popUpTo("check_auth") { inclusive = true }
-                            }
-                        },
-                        onError = { error ->
-                            // Si falla la huella o cancela, lo mandamos al login por seguridad
-                            // o puedes dejarlo en una pantalla de 'Reintentar Huella'
-                            rootNavController.navigate("login")
+            // RUTA DE DECISIÓN (Invisible para el usuario)
+            composable("check_auth") {
+                LaunchedEffect(Unit) {
+                    val token = sessionManager.getToken()
+                    if (token == null) {
+                        // No hay sesión -> Al Login
+                        rootNavController.navigate("login") {
+                            popUpTo("check_auth") { inclusive = true }
                         }
+                    } else {
+                        // HAY SESIÓN -> Pedir huella de inmediato
+                        BiometricHelper.authenticate(
+                            context = context,
+                            onSuccess = {
+                                rootNavController.navigate("main_app") {
+                                    popUpTo("check_auth") { inclusive = true }
+                                }
+                            },
+                            onError = { error ->
+                                // Si falla la huella o cancela, lo mandamos al login por seguridad
+                                // o puedes dejarlo en una pantalla de 'Reintentar Huella'
+                                rootNavController.navigate("login")
+                            }
+                        )
+                    }
+                }
+
+                // Mientras decide, mostramos una pantalla de carga con tu logo
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Image(
+                        painter = painterResource(id = R.drawable.sifago_logo),
+                        contentDescription = null,
+                        modifier = Modifier.size(100.dp)
                     )
                 }
             }
 
-            // Mientras decide, mostramos una pantalla de carga con tu logo
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Image(painter = painterResource(id = R.drawable.sifago_logo), contentDescription = null, modifier = Modifier.size(100.dp))
+            // RUTA RAÍZ 1: Pantalla de Login (Pantalla completa, sin menús)
+            composable("login") {
+                LoginScreen(
+                    onLoginSuccess = {
+                        // Navegamos a la app principal y borramos el login del historial
+                        rootNavController.navigate("main_app") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    },
+                    onNavigateToCredits = {
+                        rootNavController.navigate("credits")
+                    },
+                    onNavigateToHelp = {
+                        rootNavController.navigate("help")
+                    }
+                )
             }
-        }
 
-        // RUTA RAÍZ 1: Pantalla de Login (Pantalla completa, sin menús)
-        composable("login") {
-            LoginScreen(
-                onLoginSuccess = {
-                    // Navegamos a la app principal y borramos el login del historial
-                    rootNavController.navigate("main_app") {
-                        popUpTo("login") { inclusive = true }
+            // RUTA RAÍZ 2: El contenedor de toda tu aplicación principal
+            composable("main_app") {
+                // Llamamos a la función que contiene el MainLayout y el segundo enrutador
+                MainAppNavigation(
+                    onLogout = {
+                        sessionManager.logout() // Borramos el token y el username del celular
+                        rootNavController.navigate("login") {
+                            // Limpiamos absolutamente todo el historial de pantallas para que no pueda volver con el botón "Atrás"
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
-                }
-            )
-        }
+                )
+            }
 
-        // RUTA RAÍZ 2: El contenedor de toda tu aplicación principal
-        composable("main_app") {
-            // Llamamos a la función que contiene el MainLayout y el segundo enrutador
-            MainAppNavigation(
-                onLogout = {
-                    sessionManager.logout() // Borramos el token y el username del celular
-                    rootNavController.navigate("login") {
-                        // Limpiamos absolutamente todo el historial de pantallas para que no pueda volver con el botón "Atrás"
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
-            )
-        }
+            // RUTA RAÍZ 3: Pantalla de créditos (accesible desde el menú lateral)
+            composable("credits") {
+                CreditsScreen(
+                    onBack = { rootNavController.popBackStack() }
+                )
+            }
+
+            // RUTA RAÍZ 4: Pantalla de ayuda (accesible desde el menú lateral)
+            composable("help") {
+                HelpScreen(
+                    onBack = { rootNavController.popBackStack() }
+                )
+            }
         }
     }
 }
