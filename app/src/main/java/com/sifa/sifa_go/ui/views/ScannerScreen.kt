@@ -74,6 +74,9 @@ fun CameraScreen(
     // ¿Tenemos una foto temporal para revisar?
     var capturedPhotoPath by remember { mutableStateOf<String?>(null) }
 
+    // Variable para controlar si mostramos el formulario de multa
+    var showTicketForm by remember { mutableStateOf(false) }
+
     // Verificamos si hay algún proceso activo en pantalla que no sea la cámara en vivo
     val isShowingProcess = sifaViewModel.isLoading ||
             sifaViewModel.detectedPlate != null ||
@@ -101,13 +104,33 @@ fun CameraScreen(
             CircularProgressIndicator()
             Text("Procesando imagen con IA...", modifier = Modifier.padding(top = 60.dp))
         }
-    }  else if (coreViewModel.vehicleData != null) {
+    } else if (showTicketForm && coreViewModel.vehicleData != null) {
+        // VISTA DEL FORMULARIO DE INFRACCIÓN
+
+        // Pedimos la lista de infracciones al servidor la primera vez que se abre esto
+        LaunchedEffect(Unit) {
+            if (coreViewModel.tiposInfraccion.isEmpty()) {
+                coreViewModel.fetchTiposInfraccion()
+            }
+        }
+
+        TicketScreen(
+            vehicleData = coreViewModel.vehicleData!!,
+            tiposInfraccion = coreViewModel.tiposInfraccion,
+            mainPhotoPath = capturedPhotoPath, // Pasamos la foto de evidencia
+            onCancelClick = { showTicketForm = false }, // Vuelve a la ficha del vehículo
+            onSubmitClick = { idInfraccion, observaciones ->
+                // TODO: Enviar petición POST al backend para guardar la multa
+                println("Multa a guardar -> Tipo: $idInfraccion, Obs: $observaciones")
+            }
+        )
+
+    } else if (coreViewModel.vehicleData != null) {
         // VISTA DE INFORMACIÓN DEL VEHÍCULO
         VehicleInfoScreen(
             vehicleData = coreViewModel.vehicleData!!,
             onIssueFineClick = {
-                // TODO: Aquí navegaremos al formulario de multa más adelante
-                println("Ir al formulario de multa...")
+                showTicketForm = true // se muestra el formulario de la infraccion
             },
             onNewScanClick = {
                 // Limpiamos AMBOS ViewModel para reiniciar todo desde cero
