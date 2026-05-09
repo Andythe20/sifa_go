@@ -11,3 +11,8 @@ data class PlateInfoResponse(
     val propietario: String,
     val rut: String
 )
+
+data class TipoInfraccionResponse(
+    val id: Int,
+    val nombre: String,
+)

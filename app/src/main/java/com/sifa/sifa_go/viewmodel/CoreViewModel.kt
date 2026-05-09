@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.sifa.sifa_go.core.network.CoreRetrofitClient
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.PlateInfoResponse
+import com.sifa.sifa_go.data.model.TipoInfraccionResponse
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
@@ -19,6 +20,10 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
     var vehicleData by mutableStateOf<PlateInfoResponse?>(null)
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
+
+    // variables para peticion a la api core de tipos de infracciones
+    var tiposInfraccion by mutableStateOf<List<TipoInfraccionResponse>>(emptyList())
+    var isLoadingTipos by mutableStateOf(false)
 
     fun fetchVehicleInfo(plate: String) {
         viewModelScope.launch {
@@ -56,6 +61,35 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
 
             }finally {
                 isLoading = false
+            }
+        }
+    }
+
+    // Función para obtener la lista de tipo de infracciones del backend
+    fun fetchTiposInfraccion() {
+        viewModelScope.launch {
+            isLoadingTipos = true
+            try {
+                val token = sessionManager.getToken() ?: ""
+                // Llamamos al nuevo endpoint
+                tiposInfraccion = CoreRetrofitClient.apiService.getAllTipoInfracciones("Bearer $token")
+            } catch (e: HttpException) {
+                // Retrofit lanza HttpException cuando el backend responde con un error (400, 404, 500)
+                errorMessage = when (e.code()) {
+                    404 -> "Tipo de infraccion no encontrado"
+                    401 -> "Sesión expirada o token inválido." // Esto lo atajaremos con biometría luego
+                    503, 504 -> "El servicio nacional no está disponible en este momento."
+                    else -> "Error del servidor (${e.code()}). Intente nuevamente."
+                }
+                println("Core API HTTP Error: ${e.code()} - ${e.message()}")
+
+            } catch (e: Exception) {
+                // Esto ocurre si no hay internet o el servidor está apagado (no hay respuesta HTTP)
+                errorMessage = "Error de conexión. Compruebe su acceso a internet."
+                println("Core API Error de Red: $e")
+
+            } finally {
+                isLoadingTipos = false
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.sifa.sifa_go.core.network
 
 import com.sifa.sifa_go.data.model.PlateInfoResponse
+import com.sifa.sifa_go.data.model.TipoInfraccionResponse
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
@@ -14,11 +15,23 @@ interface CoreApiService {
         @Header("Authorization") token: String,
         @Path("id") id: String
     ): PlateInfoResponse
+
+    // para los tipo de infracciones
+    @GET("/core/api/v1/tipoInfracciones/id/{id}")
+    suspend fun getTipoInfraccion(
+        @Header("Authorization") token: String,
+        @Path("id") id: String
+    ): TipoInfraccionResponse
+
+    @GET("/core/api/v1/tipoInfracciones/all")
+    suspend fun getAllTipoInfracciones(
+        @Header("Authorization") token: String
+    ): List<TipoInfraccionResponse>
 }
 
 object CoreRetrofitClient {
     //private const val BASE_URL = "http://10.15.64.34:9000/"
-    private const val BASE_URL = "http://192.168.100.57:9000"
+    private const val BASE_URL = "http://192.168.0.11:9000"
 
     val apiService: CoreApiService by lazy {
         Retrofit.Builder()
