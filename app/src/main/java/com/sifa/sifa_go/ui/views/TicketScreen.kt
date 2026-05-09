@@ -27,12 +27,17 @@ fun TicketScreen(
     vehicleData: PlateInfoResponse,
     tiposInfraccion: List<TipoInfraccionResponse>,
     mainPhotoPath: String?, // La foto que ya tomamos al escanear la patente
+    latitude: Double?,
+    longitude: Double?,
     onCancelClick: () -> Unit,
-    onSubmitClick: (Int, String) -> Unit // Pasa el ID de la infracción y las observaciones
+    onSubmitClick: (Int, String, Double?, Double?) -> Unit // Pasa el ID de la infracción, observaciones y coordenadas
 ) {
     var expanded by remember { mutableStateOf(false) }
     var selectedTipo by remember { mutableStateOf<TipoInfraccionResponse?>(null) }
     var observaciones by remember { mutableStateOf("") }
+
+    // --- MEJORA: Estado para evitar múltiples envíos (Doble clic) ---
+    var isSubmitting by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -63,17 +68,26 @@ fun TicketScreen(
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = "Patente: ${vehicleData.patente ?: "N/A"}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Text(text = "Vehículo: ${vehicleData.marca} ${vehicleData.modelo}")
+
+                if (latitude != null && longitude != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Ubicación GPS: $latitude, $longitude",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
             }
         }
 
         // 1. DROPDOWN DE TIPO DE INFRACCIÓN
         ExposedDropdownMenuBox(
             expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
+            onExpandedChange = { if (!isSubmitting) expanded = !expanded }, // Bloqueamos si está enviando
             modifier = Modifier.fillMaxWidth()
         ) {
             OutlinedTextField(
-                value = selectedTipo?.nombre ?: "Seleccione una infracción...", // Ajusta "descripcion" según tu DTO
+                value = selectedTipo?.nombre ?: "Seleccione una infracción...",
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Tipo de Infracción *") },
@@ -93,7 +107,7 @@ fun TicketScreen(
                 } else {
                     tiposInfraccion.forEach { tipo ->
                         DropdownMenuItem(
-                            text = { Text(tipo.nombre) }, // Ajusta "descripcion" según tu DTO
+                            text = { Text(tipo.nombre) },
                             onClick = {
                                 selectedTipo = tipo
                                 expanded = false
@@ -109,12 +123,13 @@ fun TicketScreen(
         // 2. OBSERVACIONES (Opcional)
         OutlinedTextField(
             value = observaciones,
-            onValueChange = { observaciones = it },
+            onValueChange = { if (!isSubmitting) observaciones = it }, // Bloqueamos edición durante envío
             label = { Text("Observaciones (Opcional)") },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp),
-            maxLines = 4
+            maxLines = 4,
+            enabled = !isSubmitting
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -143,7 +158,6 @@ fun TicketScreen(
             ) {
                 if (mainPhotoPath != null) {
                     Icon(Icons.Filled.Image, contentDescription = "Foto capturada", tint = Color.Gray)
-                    // TODO: Aquí en el futuro puedes usar la librería 'Coil' para mostrar la imagen real
                 }
             }
 
@@ -153,11 +167,11 @@ fun TicketScreen(
                     .size(80.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    .clickable { /* TODO: Lógica para tomar otra foto */ },
+                    .clickable(enabled = !isSubmitting) { /* TODO: Lógica para tomar otra foto */ },
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Filled.AddAPhoto, contentDescription = "Agregar foto", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Filled.AddAPhoto, contentDescription = "Agregar foto", tint = if (isSubmitting) Color.Gray else MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -165,29 +179,42 @@ fun TicketScreen(
         Spacer(modifier = Modifier.height(40.dp))
 
         // BOTONES FINALES
+        // MEJORA: Se agrega lógica isSubmitting para evitar ráfaga de multas en la DB
         Button(
             onClick = {
-                if (selectedTipo != null) {
-                    onSubmitClick(selectedTipo!!.id, observaciones)
+                if (selectedTipo != null && !isSubmitting) {
+                    isSubmitting = true // Bloqueo inmediato
+                    onSubmitClick(selectedTipo!!.id, observaciones, latitude, longitude)
                 }
             },
-            enabled = selectedTipo != null, // Solo se activa si eligió una infracción
+            enabled = selectedTipo != null && !isSubmitting, // Desactiva botón si ya se clickeó
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp)
         ) {
-            Text("CONFIRMAR Y EMITIR MULTA", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            if (isSubmitting) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("PROCESANDO...")
+            } else {
+                Text("CONFIRMAR Y EMITIR MULTA", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedButton(
             onClick = onCancelClick,
+            enabled = !isSubmitting, // No puede cancelar si ya se está enviando
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text("CANCELAR", color = MaterialTheme.colorScheme.error)
+            Text("CANCELAR", color = if (isSubmitting) Color.Gray else MaterialTheme.colorScheme.error)
         }
     }
 }

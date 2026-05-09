@@ -62,6 +62,9 @@ dependencies {
     // biometría para autenticación
     implementation("androidx.biometric:biometric:1.1.0")
 
+    // GPS y Localización
+    implementation(libs.play.services.location)
+
     // Necesario para corregir la rotación de las fotos
     implementation("androidx.exifinterface:exifinterface:1.3.7")
 

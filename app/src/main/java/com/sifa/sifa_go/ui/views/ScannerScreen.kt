@@ -47,10 +47,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sifa.sifa_go.viewmodel.CoreViewModel
 import com.sifa.sifa_go.viewmodel.SifaViewModel
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
 import com.sifa.sifa_go.core.utils.ImageUtils
+import com.sifa.sifa_go.core.utils.LocationHelper
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import java.io.File
 import java.util.concurrent.Executor
 
@@ -64,9 +64,16 @@ fun CameraScreen(
     coreViewModel: CoreViewModel = viewModel(),
     onPhotoConfirmed: (String) -> Unit
 ){
-    val permissionState = rememberPermissionState(Manifest.permission.CAMERA)
+    val permissionState = rememberMultiplePermissionsState(
+        permissions = listOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    )
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
+    val locationHelper = remember { LocationHelper(context) }
 
     // Ejecutor para manejar la captura de la foto en el hilo principal
     val mainExecutor = remember { ContextCompat.getMainExecutor(context) }
@@ -94,7 +101,19 @@ fun CameraScreen(
     }
 
     LaunchedEffect(Unit) {
-        permissionState.launchPermissionRequest()
+        permissionState.launchMultiplePermissionRequest()
+    }
+
+    // Cada vez que entramos a la cámara o reiniciamos el proceso, intentamos capturar GPS
+    // MEJORA: Ahora realiza una ráfaga de 5 calibraciones para mayor exactitud
+    LaunchedEffect(capturedPhotoPath, permissionState.allPermissionsGranted) {
+        if (capturedPhotoPath == null && permissionState.allPermissionsGranted) {
+            Log.d("GPS_SIFA", "Iniciando ráfaga de 5 calibraciones de precisión...")
+            locationHelper.startPrecisionCalibration { location ->
+                // Enviamos cada intento al ViewModel para que capture el más exacto
+                sifaViewModel.processCalibrationStep(location)
+            }
+        }
     }
 
     // INTERCAMBIO DE VISTAS
@@ -118,10 +137,12 @@ fun CameraScreen(
             vehicleData = coreViewModel.vehicleData!!,
             tiposInfraccion = coreViewModel.tiposInfraccion,
             mainPhotoPath = capturedPhotoPath, // Pasamos la foto de evidencia
+            latitude = sifaViewModel.latitude,
+            longitude = sifaViewModel.longitude,
             onCancelClick = { showTicketForm = false }, // Vuelve a la ficha del vehículo
-            onSubmitClick = { idInfraccion, observaciones ->
-                // TODO: Enviar petición POST al backend para guardar la multa
-                println("Multa a guardar -> Tipo: $idInfraccion, Obs: $observaciones")
+            onSubmitClick = { idInfraccion, observaciones, lat, lon ->
+                // TODO: Enviar petición POST al backend para guardar la multa incluyendo lat/lon
+                println("Multa a guardar -> Tipo: $idInfraccion, Obs: $observaciones, GPS: $lat, $lon")
             }
         )
 
@@ -201,7 +222,7 @@ fun CameraScreen(
                 )
             }
         ) { paddingValues ->
-            if (permissionState.status.isGranted) {
+            if (permissionState.allPermissionsGranted) {
                 // Usamos un Box para poder apilar el overlay sobre la cámara
                 Box(
                     modifier = Modifier
@@ -217,6 +238,19 @@ fun CameraScreen(
 
                     // 2. El recuadro con el texto superpuesto
                     ScannerOverlay()
+
+                    // Indicador visual del estado del GPS (Opcional)
+                    sifaViewModel.gpsAccuracy?.let { accuracy ->
+                        Text(
+                            text = "GPS: ${accuracy.toInt()}m",
+                            color = if (accuracy < 10f) Color.Green else Color.Yellow,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(16.dp)
+                        )
+                    }
                 }
             } else {
                 Text("Permiso Denegado", modifier = Modifier.padding(paddingValues))
@@ -232,7 +266,7 @@ fun Camera(
     cameraController: LifecycleCameraController,
     lifecycle: LifecycleOwner,
     modifier: Modifier = Modifier,
-    ) {
+) {
 
     AndroidView(
         modifier = modifier,

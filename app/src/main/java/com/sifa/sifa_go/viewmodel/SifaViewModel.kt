@@ -1,11 +1,12 @@
 package com.sifa.sifa_go.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sifa.sifa_go.core.network.RetrofitClient
 import com.sifa.sifa_go.core.utils.SessionManager
@@ -29,11 +30,46 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
     var detectedPlate by mutableStateOf<String?>(null)
     var detectionError by mutableStateOf<String?>(null)
 
+    // Coordenadas GPS
+    var latitude by mutableStateOf<Double?>(null)
+    var longitude by mutableStateOf<Double?>(null)
+
+    // --- NUEVAS VARIABLES PARA CALIBRACIÓN ---
+    // Guardamos la precisión para saber cuál es el mejor de los 5 intentos
+    var gpsAccuracy by mutableStateOf<Float?>(null)
+    // Contador para los logs de calibración
+    var gpsAttemptCount by mutableIntStateOf(0)
+
+    /**
+     * Procesa cada uno de los 5 intentos de ubicación.
+     * Se queda con la que tenga mejor precisión (accuracy menor).
+     */
+    fun processCalibrationStep(location: android.location.Location) {
+        gpsAttemptCount++
+        val currentAccuracy = location.accuracy
+
+        // Log para monitorear la ráfaga de 5 intentos en Logcat
+        Log.d("GPS_SIFA", "Calibrando: Intento $gpsAttemptCount/5 | Precisión: ${currentAccuracy}m")
+
+        // Si es el primer intento o si este nuevo intento es más preciso que el anterior, guardamos
+        if (gpsAccuracy == null || currentAccuracy < (gpsAccuracy ?: Float.MAX_VALUE)) {
+            latitude = location.latitude
+            longitude = location.longitude
+            gpsAccuracy = currentAccuracy
+            Log.d("GPS_SIFA", "✅ Nueva mejor ubicación capturada: ${location.latitude}, ${location.longitude}")
+        }
+    }
+
     // Función para limpiar los datos cuando se termine una multa o se cancele
     fun clearProcess() {
         currentPhotoPath = null
         detectedPlate = null
         detectionError = null
+        latitude = null
+        longitude = null
+        // Limpiamos también la calibración
+        gpsAccuracy = null
+        gpsAttemptCount = 0
     }
 
     // Función para enviar la imagen
