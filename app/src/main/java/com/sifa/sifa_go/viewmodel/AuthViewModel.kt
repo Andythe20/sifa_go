@@ -21,31 +21,43 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     var isLoginSuccessful by mutableStateOf(false)
 
     fun login(email: String, pass: String) {
+
         viewModelScope.launch {
+
             isLoading = true
             loginError = null
 
             try {
-                val request = LoginRequest(email = email, password = pass)
+                val request = LoginRequest(
+                    email = email,
+                    password = pass
+                )
+
                 val response = AuthRetrofitClient.apiService.login(request)
 
+                // VALIDAR RESPUESTA
                 if (response.isSuccessful) {
                     val body = response.body()
-
                     if (body != null) {
-                        sessionManager.saveSession(
-                            token = body.accessToken,
-                            username = body.sub
-                        )
-                        isLoginSuccessful = true
+                        // VALIDAR ROL
+                        if (body.roles.contains("USER_APP")) {
+                            // GUARDAR SESIÓN
+                            sessionManager.saveSession(
+                                token = body.accessToken,
+                                username = body.sub,
+                                roles = body.roles
+                            )
+                            isLoginSuccessful = true
+                        } else {
+                            loginError = "No tienes permisos para acceder a esta aplicación"
+                            sessionManager.logout()
+                        }
                     } else {
                         loginError = "Respuesta vacía del servidor"
                     }
-
                 } else {
                     loginError = NetworkErrorHandler.getErrorMessage(response.code())
                 }
-
             } catch (e: Exception) {
                 loginError = NetworkErrorHandler.getExceptionMessage(e)
             } finally {
@@ -55,12 +67,12 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loginWithBiometrics() {
-        val savedToken = sessionManager.getToken()
-
-        if (savedToken != null) {
+        if (sessionManager.hasValidSession()) {
             isLoginSuccessful = true
         } else {
-            loginError = "Primera vez: Por favor inicia sesión con correo y contraseña primero."
+            loginError =
+                "No se encontró una sesión válida. Por favor, inicia sesión con tus credenciales primero."
+            sessionManager.logout()
         }
     }
 }
