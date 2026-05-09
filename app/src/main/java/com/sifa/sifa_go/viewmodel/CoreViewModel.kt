@@ -10,6 +10,7 @@ import com.sifa.sifa_go.core.network.CoreRetrofitClient
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.PlateInfoResponse
 import com.sifa.sifa_go.data.model.TipoInfraccionResponse
+import com.sifa.sifa_go.data.model.InfraccionCreateRequest
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
@@ -24,6 +25,10 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
     // variables para peticion a la api core de tipos de infracciones
     var tiposInfraccion by mutableStateOf<List<TipoInfraccionResponse>>(emptyList())
     var isLoadingTipos by mutableStateOf(false)
+
+    // Estados para controlar el proceso de envío de multas
+    var isSubmittingInfraccion by mutableStateOf(false) // Bloquea el botón en la UI
+    var submitSuccess by mutableStateOf(false)          // Activa la navegación de salida al éxito
 
     fun fetchVehicleInfo(plate: String) {
         viewModelScope.launch {
@@ -94,8 +99,38 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Envía la infracción al servidor.
+     * Si tiene éxito, activa [submitSuccess] para que la vista se cierre automáticamente.
+     */
+    fun submitInfraccion(request: InfraccionCreateRequest) {
+        viewModelScope.launch {
+            isSubmittingInfraccion = true
+            errorMessage = null
+            submitSuccess = false
+            
+            try {
+                val token = sessionManager.getToken() ?: ""
+                val response = CoreRetrofitClient.apiService.createInfraccion(
+                    token = "Bearer $token",
+                    request = request
+                )
+                submitSuccess = true // Notifica a la UI que el proceso terminó bien
+            } catch (e: HttpException) {
+                errorMessage = "Error al guardar la infracción: ${e.code()}"
+                println("Core API HTTP Error (submit): ${e.code()} - ${e.message()}")
+            } catch (e: Exception) {
+                errorMessage = "Error de conexión al guardar la infracción."
+                println("Core API Error de Red (submit): $e")
+            } finally {
+                isSubmittingInfraccion = false
+            }
+        }
+    }
+
     fun clearData() {
         vehicleData = null
         errorMessage = null
+        submitSuccess = false
     }
 }

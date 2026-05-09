@@ -29,15 +29,13 @@ fun TicketScreen(
     mainPhotoPath: String?, // La foto que ya tomamos al escanear la patente
     latitude: Double?,
     longitude: Double?,
+    isSubmitting: Boolean = false, // Estado que viene desde el ViewModel (bloquea la UI)
     onCancelClick: () -> Unit,
     onSubmitClick: (Int, String, Double?, Double?) -> Unit // Pasa el ID de la infracción, observaciones y coordenadas
 ) {
     var expanded by remember { mutableStateOf(false) }
     var selectedTipo by remember { mutableStateOf<TipoInfraccionResponse?>(null) }
     var observaciones by remember { mutableStateOf("") }
-
-    // --- MEJORA: Estado para evitar múltiples envíos (Doble clic) ---
-    var isSubmitting by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -179,15 +177,14 @@ fun TicketScreen(
         Spacer(modifier = Modifier.height(40.dp))
 
         // BOTONES FINALES
-        // MEJORA: Se agrega lógica isSubmitting para evitar ráfaga de multas en la DB
         Button(
             onClick = {
+                // Solo permitimos un clic si no se está enviando ya
                 if (selectedTipo != null && !isSubmitting) {
-                    isSubmitting = true // Bloqueo inmediato
                     onSubmitClick(selectedTipo!!.id, observaciones, latitude, longitude)
                 }
             },
-            enabled = selectedTipo != null && !isSubmitting, // Desactiva botón si ya se clickeó
+            enabled = selectedTipo != null && !isSubmitting, // Desactiva botón visualmente durante el envío
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp)

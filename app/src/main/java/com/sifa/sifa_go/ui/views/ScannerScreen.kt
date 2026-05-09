@@ -116,6 +116,17 @@ fun CameraScreen(
         }
     }
 
+    // Monitoreamos si la infracción se guardó con éxito en el servidor
+    LaunchedEffect(coreViewModel.submitSuccess) {
+        if (coreViewModel.submitSuccess) {
+            // Si tuvo éxito, limpiamos todo y volvemos a la cámara
+            showTicketForm = false
+            capturedPhotoPath = null
+            sifaViewModel.clearProcess()
+            coreViewModel.clearData()
+        }
+    }
+
     // INTERCAMBIO DE VISTAS
     if (sifaViewModel.isLoading) {
         // VISTA DE CARGA
@@ -139,10 +150,26 @@ fun CameraScreen(
             mainPhotoPath = capturedPhotoPath, // Pasamos la foto de evidencia
             latitude = sifaViewModel.latitude,
             longitude = sifaViewModel.longitude,
+            isSubmitting = coreViewModel.isSubmittingInfraccion,
             onCancelClick = { showTicketForm = false }, // Vuelve a la ficha del vehículo
             onSubmitClick = { idInfraccion, observaciones, lat, lon ->
-                // TODO: Enviar petición POST al backend para guardar la multa incluyendo lat/lon
-                println("Multa a guardar -> Tipo: $idInfraccion, Obs: $observaciones, GPS: $lat, $lon")
+                // Obtenemos la fecha actual en formato ISO 8601
+                val fechaActual = java.time.LocalDateTime.now().toString()
+                
+                // Construimos el objeto que espera el Backend
+                val request = com.sifa.sifa_go.data.model.InfraccionCreateRequest(
+                    lugar = "Ubicación GPS: $lat, $lon",
+                    fecha = fechaActual,
+                    latitud = lat?.toFloat() ?: 0f,
+                    longitud = lon?.toFloat() ?: 0f,
+                    patenteVehiculo = coreViewModel.vehicleData!!.patente,
+                    idTipoInfraccion = idInfraccion,
+                    observaciones = observaciones,
+                    urlsEvidencias = listOf(capturedPhotoPath ?: "evidencia_local_pendiente")
+                )
+                
+                // Disparamos la petición POST
+                coreViewModel.submitInfraccion(request)
             }
         )
 
