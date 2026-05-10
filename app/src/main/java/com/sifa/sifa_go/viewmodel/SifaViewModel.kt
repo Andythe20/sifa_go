@@ -33,6 +33,10 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
     // Coordenadas GPS
     var latitude by mutableStateOf<Double?>(null)
     var longitude by mutableStateOf<Double?>(null)
+    var currentAddress by mutableStateOf<String?>(null)
+
+    // Hora exacta de la fiscalización (capturada al tomar la foto)
+    var captureTime by mutableStateOf<String?>(null)
 
     // --- NUEVAS VARIABLES PARA CALIBRACIÓN ---
     // Guardamos la precisión para saber cuál es el mejor de los 5 intentos
@@ -67,6 +71,8 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
         detectionError = null
         latitude = null
         longitude = null
+        currentAddress = null
+        captureTime = null
         // Limpiamos también la calibración
         gpsAccuracy = null
         gpsAttemptCount = 0
