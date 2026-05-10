@@ -93,8 +93,10 @@ fun CameraScreen(
 
     // Interceptamos el botón físico "Atrás" del celular
     BackHandler(enabled = isShowingProcess) {
-        // Si estaba viendo una foto, la patente, o el vehículo, limpiamos la memoria
-        // Esto hará que el flujo caiga automáticamente en el "else" (la vista de la cámara)
+        // primero eliminamos la foto que se tomó
+        ImageUtils.deleteImageFile(capturedPhotoPath)
+
+        // Luego, limpiamos la memoria
         sifaViewModel.clearProcess()
         coreViewModel.clearData()
         capturedPhotoPath = null
@@ -189,6 +191,9 @@ fun CameraScreen(
                 showTicketForm = true // se muestra el formulario de la infraccion
             },
             onNewScanClick = {
+                // limpiamos la foto física antes de reiniciar el proceso
+                ImageUtils.deleteImageFile(capturedPhotoPath)
+
                 // Limpiamos AMBOS ViewModel para reiniciar todo desde cero
                 capturedPhotoPath = null
                 sifaViewModel.clearProcess()
@@ -210,6 +215,9 @@ fun CameraScreen(
                 coreViewModel.fetchVehicleInfo(finalPlate)
             },
             onRetakePhoto = {
+                // limpiamos la foto física antes de reiniciar el proceso
+                ImageUtils.deleteImageFile(capturedPhotoPath)
+
                 capturedPhotoPath = null
                 sifaViewModel.clearProcess()
                 coreViewModel.clearData()
@@ -226,6 +234,9 @@ fun CameraScreen(
         PreviewScreen(
             photoPath = capturedPhotoPath!!,
             onRetakePhoto = {
+                // limpiamos la foto física antes de reiniciar el proceso
+                ImageUtils.deleteImageFile(capturedPhotoPath)
+
                 // Al volver a null, Jetpack Compose vuelve a dibujar la cámara instantáneamente
                 capturedPhotoPath = null
             },
