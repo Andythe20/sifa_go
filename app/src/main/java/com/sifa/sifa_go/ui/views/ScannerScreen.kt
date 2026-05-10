@@ -119,11 +119,18 @@ fun CameraScreen(
     // Monitoreamos si la infracción se guardó con éxito en el servidor
     LaunchedEffect(coreViewModel.submitSuccess) {
         if (coreViewModel.submitSuccess) {
-            // Si tuvo éxito, limpiamos todo y volvemos a la cámara
+
+            // borramos la foto en caché (carpeta evidencia_multas)
+            ImageUtils.deleteImageFile(capturedPhotoPath)
+
+            // Cerramos el formulario y limpiamos la ruta de la foto de la UI
             showTicketForm = false
             capturedPhotoPath = null
+
+            // limpiamos memoria de los viewmodels
             sifaViewModel.clearProcess()
             coreViewModel.clearData()
+
         }
     }
 
@@ -331,6 +338,11 @@ private fun takePicture(
             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                 // Movemos la foto al almacenamiento persistente
                 val permanentPath = savePhotoToPersistentStorage(context, photoFile)
+
+                // eliminamos la foto en caché, ya no la necesitamos
+                if (photoFile.exists()) {
+                    photoFile.delete()
+                }
 
                 // Devolvemos la ruta final y segura
                 onPhotoTaken(permanentPath)
