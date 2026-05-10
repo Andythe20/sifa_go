@@ -93,8 +93,10 @@ fun CameraScreen(
 
     // Interceptamos el botón físico "Atrás" del celular
     BackHandler(enabled = isShowingProcess) {
-        // Si estaba viendo una foto, la patente, o el vehículo, limpiamos la memoria
-        // Esto hará que el flujo caiga automáticamente en el "else" (la vista de la cámara)
+        // primero eliminamos la foto que se tomó
+        ImageUtils.deleteImageFile(capturedPhotoPath)
+
+        // Luego, limpiamos la memoria
         sifaViewModel.clearProcess()
         coreViewModel.clearData()
         capturedPhotoPath = null
@@ -126,19 +128,27 @@ fun CameraScreen(
         }
     }
 
-    // Monitoreamos si la infracción se guardó con éxito en el servidor
-    LaunchedEffect(coreViewModel.submitSuccess) {
-        if (coreViewModel.submitSuccess) {
-            // Si tuvo éxito, limpiamos todo y volvemos a la cámara
-            showTicketForm = false
-            capturedPhotoPath = null
-            sifaViewModel.clearProcess()
-            coreViewModel.clearData()
-        }
-    }
-
     // INTERCAMBIO DE VISTAS
-    if (sifaViewModel.isLoading) {
+
+    if (coreViewModel.submitSuccess) {
+        // VISTA DE EXITO AL REGISTRAR INFRACCION
+        TicketSuccessScreen(
+            onAnimationFinished = {
+                // Esto se ejecuta cuando se termina la animación
+
+                // borramos la foto en caché (carpeta evidencia_multas)
+                ImageUtils.deleteImageFile(capturedPhotoPath)
+
+                // Cerramos el formulario y limpiamos la ruta de la foto de la UI
+                showTicketForm = false
+                capturedPhotoPath = null
+
+                // limpiamos memoria de los viewmodels
+                sifaViewModel.clearProcess()
+                coreViewModel.clearData()
+            }
+        )
+    } else if (sifaViewModel.isLoading) {
         // VISTA DE CARGA
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -195,6 +205,9 @@ fun CameraScreen(
                 showTicketForm = true // se muestra el formulario de la infraccion
             },
             onNewScanClick = {
+                // limpiamos la foto física antes de reiniciar el proceso
+                ImageUtils.deleteImageFile(capturedPhotoPath)
+
                 // Limpiamos AMBOS ViewModel para reiniciar todo desde cero
                 capturedPhotoPath = null
                 sifaViewModel.clearProcess()
@@ -216,6 +229,9 @@ fun CameraScreen(
                 coreViewModel.fetchVehicleInfo(finalPlate)
             },
             onRetakePhoto = {
+                // limpiamos la foto física antes de reiniciar el proceso
+                ImageUtils.deleteImageFile(capturedPhotoPath)
+
                 capturedPhotoPath = null
                 sifaViewModel.clearProcess()
                 coreViewModel.clearData()
@@ -232,6 +248,9 @@ fun CameraScreen(
         PreviewScreen(
             photoPath = capturedPhotoPath!!,
             onRetakePhoto = {
+                // limpiamos la foto física antes de reiniciar el proceso
+                ImageUtils.deleteImageFile(capturedPhotoPath)
+
                 // Al volver a null, Jetpack Compose vuelve a dibujar la cámara instantáneamente
                 capturedPhotoPath = null
             },
@@ -349,6 +368,11 @@ private fun takePicture(
             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                 // Movemos la foto al almacenamiento persistente
                 val permanentPath = savePhotoToPersistentStorage(context, photoFile)
+
+                // eliminamos la foto en caché, ya no la necesitamos
+                if (photoFile.exists()) {
+                    photoFile.delete()
+                }
 
                 // Devolvemos la ruta final y segura
                 onPhotoTaken(permanentPath)

@@ -24,8 +24,7 @@ object RetrofitClient {
     // IP apuntando al puerto expuesto por el docker
     // Modificar ip dependiendo a qué red te conectes
     // En local tanto tu móvil como el pc deben estar conectados al mismo wi-fi
-    //private const val BASE_URL = "http://192.168.100.75:9000/"
-    private const val BASE_URL = "http://192.168.0.11:9000"
+    private const val BASE_URL = "http://192.168.100.57:9000"
 
     val apiService: SifaApiService by lazy {
         Retrofit.Builder()

@@ -62,4 +62,20 @@ object ImageUtils {
             return outputFile.absolutePath
         }
     }
+
+    /** Funcion para eliminar la imagen guardada en el dispositivo una vez que se emita la infraccion
+     * o cuando se inicie un nuevo escaneo */
+    fun deleteImageFile(filePath: String?) {
+        if (filePath != null) {
+            try {
+                val file = File(filePath)
+                if (file.exists()) {
+                    val deleted = file.delete()
+                    println("¿Archivo borrado exitosamente?: $deleted")
+                }
+            } catch (e: Exception) {
+                println("Error al intentar borrar la foto: ${e.message}")
+            }
+        }
+    }
 }

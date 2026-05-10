@@ -103,7 +103,9 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
      * Envía la infracción al servidor.
      * Si tiene éxito, activa [submitSuccess] para que la vista se cierre automáticamente.
      */
-    fun submitInfraccion(request: InfraccionCreateRequest) {
+    fun submitInfraccion(
+        request: InfraccionCreateRequest,
+    ) {
         viewModelScope.launch {
             isSubmittingInfraccion = true
             errorMessage = null
