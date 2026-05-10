@@ -114,6 +114,16 @@ fun CameraScreen(
             locationHelper.startPrecisionCalibration { location ->
                 // Enviamos cada intento al ViewModel para que capture el más exacto
                 sifaViewModel.processCalibrationStep(location)
+
+                // MEJORA: Obtener dirección legible una vez tengamos coordenadas (Geocoding)
+                locationHelper.getAddressFromLocation(location.latitude, location.longitude) { address ->
+                    if (address != null) {
+                        mainExecutor.execute {
+                            Log.d("GPS_SIFA", "Dirección obtenida: $address")
+                        }
+                        sifaViewModel.currentAddress = address
+                    }
+                }
             }
         }
     }
@@ -163,13 +173,17 @@ fun CameraScreen(
             isSubmitting = coreViewModel.isSubmittingInfraccion,
             onCancelClick = { showTicketForm = false }, // Vuelve a la ficha del vehículo
             onSubmitClick = { idInfraccion, observaciones, lat, lon ->
-                // Obtenemos la fecha actual en formato ISO 8601
-                val fechaActual = java.time.LocalDateTime.now().toString()
-                
+                // Usamos la fecha capturada al momento de la foto, o la actual como fallback
+                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+                val fechaFiscalizacion = sifaViewModel.captureTime ?: java.time.LocalDateTime.now().format(formatter)
+
+                // Usamos la dirección obtenida por Geocoding, o las coordenadas como fallback
+                val lugarFinal = sifaViewModel.currentAddress ?: "Ubicación GPS: $lat, $lon"
+
                 // Construimos el objeto que espera el Backend
                 val request = com.sifa.sifa_go.data.model.InfraccionCreateRequest(
-                    lugar = "Ubicación GPS: $lat, $lon",
-                    fecha = fechaActual,
+                    lugar = lugarFinal,
+                    fecha = fechaFiscalizacion,
                     latitud = lat?.toFloat() ?: 0f,
                     longitud = lon?.toFloat() ?: 0f,
                     patenteVehiculo = coreViewModel.vehicleData!!.patente,
@@ -177,7 +191,7 @@ fun CameraScreen(
                     observaciones = observaciones,
                     urlsEvidencias = listOf(capturedPhotoPath ?: "evidencia_local_pendiente")
                 )
-                
+
                 // Disparamos la petición POST
                 coreViewModel.submitInfraccion(request)
             }
@@ -253,6 +267,10 @@ fun CameraScreen(
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = {
+                        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+                        sifaViewModel.captureTime = java.time.LocalDateTime.now().format(formatter)
+                        Log.d("SIFA_TIME", "Hora de fiscalización capturada (Truco UTC): ${sifaViewModel.captureTime}")
+
                         takePicture(
                             cameraController,
                             context,
