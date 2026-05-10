@@ -116,26 +116,27 @@ fun CameraScreen(
         }
     }
 
-    // Monitoreamos si la infracción se guardó con éxito en el servidor
-    LaunchedEffect(coreViewModel.submitSuccess) {
-        if (coreViewModel.submitSuccess) {
-
-            // borramos la foto en caché (carpeta evidencia_multas)
-            ImageUtils.deleteImageFile(capturedPhotoPath)
-
-            // Cerramos el formulario y limpiamos la ruta de la foto de la UI
-            showTicketForm = false
-            capturedPhotoPath = null
-
-            // limpiamos memoria de los viewmodels
-            sifaViewModel.clearProcess()
-            coreViewModel.clearData()
-
-        }
-    }
-
     // INTERCAMBIO DE VISTAS
-    if (sifaViewModel.isLoading) {
+
+    if (coreViewModel.submitSuccess) {
+        // VISTA DE EXITO AL REGISTRAR INFRACCION
+        TicketSuccessScreen(
+            onAnimationFinished = {
+                // Esto se ejecuta cuando se termina la animación
+
+                // borramos la foto en caché (carpeta evidencia_multas)
+                ImageUtils.deleteImageFile(capturedPhotoPath)
+
+                // Cerramos el formulario y limpiamos la ruta de la foto de la UI
+                showTicketForm = false
+                capturedPhotoPath = null
+
+                // limpiamos memoria de los viewmodels
+                sifaViewModel.clearProcess()
+                coreViewModel.clearData()
+            }
+        )
+    } else if (sifaViewModel.isLoading) {
         // VISTA DE CARGA
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
