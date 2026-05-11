@@ -10,6 +10,7 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -20,10 +21,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -85,7 +88,10 @@ fun CameraScreen(
     var showTicketForm by remember { mutableStateOf(false) }
 
     // variable para adjuntar todas las fotos que se suban al backend
-    var evidencePhotoPaths by remember { mutableStateOf(mutableListOf<String>()) }
+    val evidencePhotoPaths = remember { mutableStateListOf<String>() }
+
+    // para saber si estamos sacando una foto extra
+    var isTakingEvidencePhoto by remember { mutableStateOf(false) }
 
     // Verificamos si hay algún proceso activo en pantalla que no sea la cámara en vivo
     val isShowingProcess = sifaViewModel.isLoading ||
@@ -173,37 +179,87 @@ fun CameraScreen(
             }
         }
 
-        TicketScreen(
-            vehicleData = coreViewModel.vehicleData!!,
-            tiposInfraccion = coreViewModel.tiposInfraccion,
-            mainPhotoPath = capturedPhotoPath, // Pasamos la foto de evidencia
-            latitude = sifaViewModel.latitude,
-            longitude = sifaViewModel.longitude,
-            isSubmitting = coreViewModel.isSubmittingInfraccion,
-            onCancelClick = { showTicketForm = false }, // Vuelve a la ficha del vehículo
-            onSubmitClick = { idInfraccion, observaciones, lat, lon ->
-                // Usamos la fecha capturada al momento de la foto, o la actual como fallback
-                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
-                val fechaFiscalizacion = sifaViewModel.captureTime ?: java.time.LocalDateTime.now().format(formatter)
+        Box(modifier = Modifier.fillMaxSize()) {
+            TicketScreen(
+                vehicleData = coreViewModel.vehicleData!!,
+                tiposInfraccion = coreViewModel.tiposInfraccion,
+                evidencePhotos = evidencePhotoPaths,
+                latitude = sifaViewModel.latitude,
+                longitude = sifaViewModel.longitude,
+                isSubmitting = coreViewModel.isSubmittingInfraccion,
+                onCancelClick = { showTicketForm = false }, // Vuelve a la ficha del vehículo
+                onSubmitClick = { idInfraccion, observaciones, lat, lon ->
+                    // Usamos la fecha capturada al momento de la foto, o la actual como fallback
+                    val formatter =
+                        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+                    val fechaFiscalizacion =
+                        sifaViewModel.captureTime ?: java.time.LocalDateTime.now().format(formatter)
 
-                // Usamos la dirección obtenida por Geocoding, o las coordenadas como fallback
-                val lugarFinal = sifaViewModel.currentAddress ?: "Ubicación GPS: $lat, $lon"
+                    // Usamos la dirección obtenida por Geocoding, o las coordenadas como fallback
+                    val lugarFinal = sifaViewModel.currentAddress ?: "Ubicación GPS: $lat, $lon"
 
-                // Construimos el objeto que espera el Backend
-                val request = com.sifa.sifa_go.data.model.InfraccionCreateRequest(
-                    lugar = lugarFinal,
-                    fecha = fechaFiscalizacion,
-                    latitud = lat?.toFloat() ?: 0f,
-                    longitud = lon?.toFloat() ?: 0f,
-                    patenteVehiculo = coreViewModel.vehicleData!!.patente,
-                    idTipoInfraccion = idInfraccion,
-                    observaciones = observaciones,
-                )
+                    // Construimos el objeto que espera el Backend
+                    val request = com.sifa.sifa_go.data.model.InfraccionCreateRequest(
+                        lugar = lugarFinal,
+                        fecha = fechaFiscalizacion,
+                        latitud = lat?.toFloat() ?: 0f,
+                        longitud = lon?.toFloat() ?: 0f,
+                        patenteVehiculo = coreViewModel.vehicleData!!.patente,
+                        idTipoInfraccion = idInfraccion,
+                        observaciones = observaciones,
+                    )
 
-                // Disparamos la petición POST
-                coreViewModel.submitInfraccion(request, evidencePhotoPaths)
+                    // Disparamos la petición POST
+                    coreViewModel.submitInfraccion(request, evidencePhotoPaths)
+                },
+                onAddPhotoClick = {
+                    isTakingEvidencePhoto = true // Activamos la cámara overlay
+                }
+            )
+
+            // La Cámara Overlay (Solo se dibuja si isTakingEvidencePhoto es true)
+            if (isTakingEvidencePhoto) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black) // Fondo negro para tapar el formulario
+                ) {
+                    // Reutilizamos tu componente de cámara
+                    Camera(
+                        cameraController = cameraController,
+                        lifecycle = lifecycle,
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    // Botón para cerrar la cámara y volver al formulario
+                    androidx.compose.material3.IconButton(
+                        onClick = { isTakingEvidencePhoto = false },
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(top = 40.dp, start = 16.dp)
+                    ) {
+                        Icon(Icons.Filled.Close, contentDescription = "Cerrar", tint = Color.White)
+                    }
+
+                    // Botón para capturar la nueva foto
+                    ExtendedFloatingActionButton(
+                        onClick = {
+                            takePicture(cameraController, context, mainExecutor) { path ->
+                                // Agregamos la nueva ruta a la lista
+                                evidencePhotoPaths.add(path)
+                                // Cerramos el overlay
+                                isTakingEvidencePhoto = false
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 32.dp),
+                        icon = { Icon(Icons.Filled.CameraAlt, contentDescription = null) },
+                        text = { Text("CAPTURAR EVIDENCIA") }
+                    )
+                }
             }
-        )
+        }
 
     } else if (coreViewModel.vehicleData != null) {
         // VISTA DE INFORMACIÓN DEL VEHÍCULO
