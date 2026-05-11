@@ -9,7 +9,10 @@ import retrofit2.http.GET
 import retrofit2.http.Body
 import com.sifa.sifa_go.data.model.InfraccionCreateRequest
 import com.sifa.sifa_go.data.model.InfraccionResponse
+import okhttp3.MultipartBody
 import retrofit2.http.Header
+import retrofit2.http.Multipart
+import retrofit2.http.Part
 import retrofit2.http.Path
 
 interface CoreApiService {
@@ -33,15 +36,17 @@ interface CoreApiService {
     ): List<TipoInfraccionResponse>
 
     // Envia los datos de la multa al Core Service a través del Gateway
+    @Multipart
     @POST("/core/api/v1/infracciones")
     suspend fun createInfraccion(
         @Header("Authorization") token: String,
-        @Body request: InfraccionCreateRequest
+        @Part("infraccion") request: InfraccionCreateRequest, // Los metadatos en JSON
+        @Part fotos: List<MultipartBody.Part>     // Los archivos reales
     ): InfraccionResponse
 }
 
 object CoreRetrofitClient {
-    private const val BASE_URL = "http://192.168.100.57:9000"
+    private const val BASE_URL = "http://192.168.0.11:9000"
 
     val apiService: CoreApiService by lazy {
         Retrofit.Builder()
