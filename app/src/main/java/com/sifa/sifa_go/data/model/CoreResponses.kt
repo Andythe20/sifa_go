@@ -16,3 +16,26 @@ data class TipoInfraccionResponse(
     val id: Int,
     val nombre: String,
 )
+
+/*
+ Modelo para enviar una nueva infracción al Core Service.
+ Debe coincidir exactamente con InfraccionCreateRequest.java del backend.
+ */
+data class InfraccionCreateRequest(
+    val lugar: String,          // Dirección o descripción del lugar
+    val fecha: String,          // Fecha en formato ISO 8601 (LocalDateTime en el backend)
+    val latitud: Float,         // Capturada desde el GPS del móvil
+    val longitud: Float,        // Capturada desde el GPS del móvil
+    val patenteVehiculo: String,
+    val idTipoInfraccion: Int,  // ID obtenido de la lista de tipos de infracción
+    val observaciones: String?,
+)
+
+/*
+  Respuesta del servidor tras crear exitosamente una infracción.
+ */
+data class InfraccionResponse(
+    val idInfraccion: Int,
+    val lugar: String,
+    val estado: String
+)

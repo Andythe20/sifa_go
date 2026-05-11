@@ -28,6 +28,9 @@ android {
         }
     }
     compileOptions {
+        // Habilita el soporte para APIs modernas de Java (java.time) en versiones antiguas de Android
+        isCoreLibraryDesugaringEnabled = true
+
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -40,31 +43,43 @@ android {
 }
 
 dependencies {
-    //Permisos de camara
+    // Librería para que java.time.LocalDateTime funcione en minSdk 24
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+
+    // Manejo de permisos (Cámara, GPS, etc.) optimizado para Jetpack Compose
     implementation("com.google.accompanist:accompanist-permissions:0.28.0")
 
+    // CameraX: Funciones de cámara (captura y visualización)
     val cameraxVersion = "1.6.0"
     implementation("androidx.camera:camera-camera2:$cameraxVersion")
     implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
     implementation("androidx.camera:camera-view:$cameraxVersion")
 
+    // Integración del ciclo de vida de la app con Compose
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+
+    // Navegación entre pantallas en Jetpack Compose
     implementation("androidx.navigation:navigation-compose:2.9.7")
-    // dependencia para mostrar imagen en jetpack compose
+
+    // Coil: Carga y visualización de imágenes desde internet o archivos
     implementation("io.coil-kt:coil-compose:2.7.0")
 
-    // Retrofit para peticiones HTTP
+    // Retrofit: Cliente para realizar peticiones a APIs (HTTP)
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
 
-    // Gson para convertir el JSON del backend a Data Classes de Kotlin
+    // Gson: Conversor de datos JSON recibidos de la API a clases de Kotlin
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
-    // biometría para autenticación
+    // Biometría: Autenticación por huella digital o rostro
     implementation("androidx.biometric:biometric:1.1.0")
 
-    // Necesario para corregir la rotación de las fotos
+    // Google Play Services: Servicios de ubicación y GPS
+    implementation(libs.play.services.location)
+
+    // ExifInterface: Manejo de metadatos de imágenes (ej. corregir rotación de fotos)
     implementation("androidx.exifinterface:exifinterface:1.3.7")
 
+    // Iconos, Material Design 3 y herramientas base de Jetpack Compose
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -74,6 +89,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+
+    // Dependencias para pruebas unitarias y de interfaz de usuario
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

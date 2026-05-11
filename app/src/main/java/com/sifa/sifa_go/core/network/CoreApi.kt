@@ -4,8 +4,14 @@ import com.sifa.sifa_go.data.model.PlateInfoResponse
 import com.sifa.sifa_go.data.model.TipoInfraccionResponse
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.POST
 import retrofit2.http.GET
+import com.sifa.sifa_go.data.model.InfraccionResponse
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.Header
+import retrofit2.http.Multipart
+import retrofit2.http.Part
 import retrofit2.http.Path
 
 interface CoreApiService {
@@ -27,10 +33,18 @@ interface CoreApiService {
     suspend fun getAllTipoInfracciones(
         @Header("Authorization") token: String
     ): List<TipoInfraccionResponse>
+
+    // Envia los datos de la multa al Core Service a través del Gateway
+    @Multipart
+    @POST("/core/api/v1/infracciones")
+    suspend fun createInfraccion(
+        @Header("Authorization") token: String,
+        @Part("infraccion") request: RequestBody, // Los metadatos en JSON
+        @Part fotos: List<MultipartBody.Part>     // Los archivos reales
+    ): InfraccionResponse
 }
 
 object CoreRetrofitClient {
-    //private const val BASE_URL = "http://10.15.64.34:9000/"
     private const val BASE_URL = "http://192.168.0.11:9000"
 
     val apiService: CoreApiService by lazy {

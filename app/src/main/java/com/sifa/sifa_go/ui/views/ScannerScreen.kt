@@ -10,6 +10,7 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -20,10 +21,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -47,10 +50,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sifa.sifa_go.viewmodel.CoreViewModel
 import com.sifa.sifa_go.viewmodel.SifaViewModel
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
 import com.sifa.sifa_go.core.utils.ImageUtils
+import com.sifa.sifa_go.core.utils.LocationHelper
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import java.io.File
 import java.util.concurrent.Executor
 
@@ -64,9 +67,16 @@ fun CameraScreen(
     coreViewModel: CoreViewModel = viewModel(),
     onPhotoConfirmed: (String) -> Unit
 ){
-    val permissionState = rememberPermissionState(Manifest.permission.CAMERA)
+    val permissionState = rememberMultiplePermissionsState(
+        permissions = listOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    )
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
+    val locationHelper = remember { LocationHelper(context) }
 
     // Ejecutor para manejar la captura de la foto en el hilo principal
     val mainExecutor = remember { ContextCompat.getMainExecutor(context) }
@@ -77,6 +87,12 @@ fun CameraScreen(
     // Variable para controlar si mostramos el formulario de multa
     var showTicketForm by remember { mutableStateOf(false) }
 
+    // variable para adjuntar todas las fotos que se suban al backend
+    val evidencePhotoPaths = remember { mutableStateListOf<String>() }
+
+    // para saber si estamos sacando una foto extra
+    var isTakingEvidencePhoto by remember { mutableStateOf(false) }
+
     // Verificamos si hay algún proceso activo en pantalla que no sea la cámara en vivo
     val isShowingProcess = sifaViewModel.isLoading ||
             sifaViewModel.detectedPlate != null ||
@@ -86,19 +102,68 @@ fun CameraScreen(
 
     // Interceptamos el botón físico "Atrás" del celular
     BackHandler(enabled = isShowingProcess) {
-        // Si estaba viendo una foto, la patente, o el vehículo, limpiamos la memoria
-        // Esto hará que el flujo caiga automáticamente en el "else" (la vista de la cámara)
+        // Borramos TODAS las fotos de la sesión actual
+        evidencePhotoPaths.forEach { path ->
+            ImageUtils.deleteImageFile(path)
+        }
+        evidencePhotoPaths.clear() // Vaciamos la lista
+
+        // Luego, limpiamos la memoria
         sifaViewModel.clearProcess()
         coreViewModel.clearData()
         capturedPhotoPath = null
     }
 
     LaunchedEffect(Unit) {
-        permissionState.launchPermissionRequest()
+        permissionState.launchMultiplePermissionRequest()
+    }
+
+    // Cada vez que entramos a la cámara o reiniciamos el proceso, intentamos capturar GPS
+    // MEJORA: Ahora realiza una ráfaga de 5 calibraciones para mayor exactitud
+    LaunchedEffect(capturedPhotoPath, permissionState.allPermissionsGranted) {
+        if (capturedPhotoPath == null && permissionState.allPermissionsGranted) {
+            Log.d("GPS_SIFA", "Iniciando ráfaga de 5 calibraciones de precisión...")
+            locationHelper.startPrecisionCalibration { location ->
+                // Enviamos cada intento al ViewModel para que capture el más exacto
+                sifaViewModel.processCalibrationStep(location)
+
+                // MEJORA: Obtener dirección legible una vez tengamos coordenadas (Geocoding)
+                locationHelper.getAddressFromLocation(location.latitude, location.longitude) { address ->
+                    if (address != null) {
+                        mainExecutor.execute {
+                            Log.d("GPS_SIFA", "Dirección obtenida: $address")
+                        }
+                        sifaViewModel.currentAddress = address
+                    }
+                }
+            }
+        }
     }
 
     // INTERCAMBIO DE VISTAS
-    if (sifaViewModel.isLoading) {
+
+    if (coreViewModel.submitSuccess) {
+        // VISTA DE EXITO AL REGISTRAR INFRACCION
+        TicketSuccessScreen(
+            onAnimationFinished = {
+                // Esto se ejecuta cuando se termina la animación
+
+                // borramos todas las evidencias fisicas
+                evidencePhotoPaths.forEach { path ->
+                    ImageUtils.deleteImageFile(path)
+                }
+                evidencePhotoPaths.clear()
+
+                // Cerramos el formulario y limpiamos la ruta de la foto de la UI
+                showTicketForm = false
+                capturedPhotoPath = null
+
+                // limpiamos memoria de los viewmodels
+                sifaViewModel.clearProcess()
+                coreViewModel.clearData()
+            }
+        )
+    } else if (sifaViewModel.isLoading) {
         // VISTA DE CARGA
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -114,16 +179,87 @@ fun CameraScreen(
             }
         }
 
-        TicketScreen(
-            vehicleData = coreViewModel.vehicleData!!,
-            tiposInfraccion = coreViewModel.tiposInfraccion,
-            mainPhotoPath = capturedPhotoPath, // Pasamos la foto de evidencia
-            onCancelClick = { showTicketForm = false }, // Vuelve a la ficha del vehículo
-            onSubmitClick = { idInfraccion, observaciones ->
-                // TODO: Enviar petición POST al backend para guardar la multa
-                println("Multa a guardar -> Tipo: $idInfraccion, Obs: $observaciones")
+        Box(modifier = Modifier.fillMaxSize()) {
+            TicketScreen(
+                vehicleData = coreViewModel.vehicleData!!,
+                tiposInfraccion = coreViewModel.tiposInfraccion,
+                evidencePhotos = evidencePhotoPaths,
+                latitude = sifaViewModel.latitude,
+                longitude = sifaViewModel.longitude,
+                isSubmitting = coreViewModel.isSubmittingInfraccion,
+                onCancelClick = { showTicketForm = false }, // Vuelve a la ficha del vehículo
+                onSubmitClick = { idInfraccion, observaciones, lat, lon ->
+                    // Usamos la fecha capturada al momento de la foto, o la actual como fallback
+                    val formatter =
+                        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+                    val fechaFiscalizacion =
+                        sifaViewModel.captureTime ?: java.time.LocalDateTime.now().format(formatter)
+
+                    // Usamos la dirección obtenida por Geocoding, o las coordenadas como fallback
+                    val lugarFinal = sifaViewModel.currentAddress ?: "Ubicación GPS: $lat, $lon"
+
+                    // Construimos el objeto que espera el Backend
+                    val request = com.sifa.sifa_go.data.model.InfraccionCreateRequest(
+                        lugar = lugarFinal,
+                        fecha = fechaFiscalizacion,
+                        latitud = lat?.toFloat() ?: 0f,
+                        longitud = lon?.toFloat() ?: 0f,
+                        patenteVehiculo = coreViewModel.vehicleData!!.patente,
+                        idTipoInfraccion = idInfraccion,
+                        observaciones = observaciones,
+                    )
+
+                    // Disparamos la petición POST
+                    coreViewModel.submitInfraccion(request, evidencePhotoPaths)
+                },
+                onAddPhotoClick = {
+                    isTakingEvidencePhoto = true // Activamos la cámara overlay
+                }
+            )
+
+            // La Cámara Overlay (Solo se dibuja si isTakingEvidencePhoto es true)
+            if (isTakingEvidencePhoto) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black) // Fondo negro para tapar el formulario
+                ) {
+                    // Reutilizamos tu componente de cámara
+                    Camera(
+                        cameraController = cameraController,
+                        lifecycle = lifecycle,
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    // Botón para cerrar la cámara y volver al formulario
+                    androidx.compose.material3.IconButton(
+                        onClick = { isTakingEvidencePhoto = false },
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(top = 40.dp, start = 16.dp)
+                    ) {
+                        Icon(Icons.Filled.Close, contentDescription = "Cerrar", tint = Color.White)
+                    }
+
+                    // Botón para capturar la nueva foto
+                    ExtendedFloatingActionButton(
+                        onClick = {
+                            takePicture(cameraController, context, mainExecutor) { path ->
+                                // Agregamos la nueva ruta a la lista
+                                evidencePhotoPaths.add(path)
+                                // Cerramos el overlay
+                                isTakingEvidencePhoto = false
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 32.dp),
+                        icon = { Icon(Icons.Filled.CameraAlt, contentDescription = null) },
+                        text = { Text("CAPTURAR EVIDENCIA") }
+                    )
+                }
             }
-        )
+        }
 
     } else if (coreViewModel.vehicleData != null) {
         // VISTA DE INFORMACIÓN DEL VEHÍCULO
@@ -133,6 +269,12 @@ fun CameraScreen(
                 showTicketForm = true // se muestra el formulario de la infraccion
             },
             onNewScanClick = {
+                // limpiamos la foto física antes de reiniciar el proceso
+                evidencePhotoPaths.forEach { path ->
+                    ImageUtils.deleteImageFile(path)
+                }
+                evidencePhotoPaths.clear()
+
                 // Limpiamos AMBOS ViewModel para reiniciar todo desde cero
                 capturedPhotoPath = null
                 sifaViewModel.clearProcess()
@@ -154,6 +296,12 @@ fun CameraScreen(
                 coreViewModel.fetchVehicleInfo(finalPlate)
             },
             onRetakePhoto = {
+                // limpiamos la foto física antes de reiniciar el proceso
+                evidencePhotoPaths.forEach { path ->
+                    ImageUtils.deleteImageFile(path)
+                }
+                evidencePhotoPaths.clear()
+
                 capturedPhotoPath = null
                 sifaViewModel.clearProcess()
                 coreViewModel.clearData()
@@ -166,11 +314,15 @@ fun CameraScreen(
         }
     } else if (capturedPhotoPath != null) {
 
-        // VISTA 1: PREVISUALIZACIÓN
+        // VISTA PREVISUALIZACIÓN
         PreviewScreen(
             photoPath = capturedPhotoPath!!,
             onRetakePhoto = {
-                // Al volver a null, Jetpack Compose vuelve a dibujar la cámara instantáneamente
+                // limpiamos la foto física antes de reiniciar el proceso
+                ImageUtils.deleteImageFile(capturedPhotoPath)
+                evidencePhotoPaths.remove(capturedPhotoPath)
+
+                    // Al volver a null, Jetpack Compose vuelve a dibujar la cámara instantáneamente
                 capturedPhotoPath = null
             },
             onSendPhoto = { finalPath ->
@@ -186,12 +338,17 @@ fun CameraScreen(
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = {
+                        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+                        sifaViewModel.captureTime = java.time.LocalDateTime.now().format(formatter)
+                        Log.d("SIFA_TIME", "Hora de fiscalización capturada (Truco UTC): ${sifaViewModel.captureTime}")
+
                         takePicture(
                             cameraController,
                             context,
                             mainExecutor,
                         ) { path ->
                             capturedPhotoPath = path
+                            evidencePhotoPaths.add(path)
                         }
                     },
                     containerColor = Color.White, // Puedes poner el color principal de tu app
@@ -201,7 +358,7 @@ fun CameraScreen(
                 )
             }
         ) { paddingValues ->
-            if (permissionState.status.isGranted) {
+            if (permissionState.allPermissionsGranted) {
                 // Usamos un Box para poder apilar el overlay sobre la cámara
                 Box(
                     modifier = Modifier
@@ -217,6 +374,19 @@ fun CameraScreen(
 
                     // 2. El recuadro con el texto superpuesto
                     ScannerOverlay()
+
+                    // Indicador visual del estado del GPS (Opcional)
+                    sifaViewModel.gpsAccuracy?.let { accuracy ->
+                        Text(
+                            text = "GPS: ${accuracy.toInt()}m",
+                            color = if (accuracy < 10f) Color.Green else Color.Yellow,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(16.dp)
+                        )
+                    }
                 }
             } else {
                 Text("Permiso Denegado", modifier = Modifier.padding(paddingValues))
@@ -232,7 +402,7 @@ fun Camera(
     cameraController: LifecycleCameraController,
     lifecycle: LifecycleOwner,
     modifier: Modifier = Modifier,
-    ) {
+) {
 
     AndroidView(
         modifier = modifier,
@@ -270,6 +440,11 @@ private fun takePicture(
             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                 // Movemos la foto al almacenamiento persistente
                 val permanentPath = savePhotoToPersistentStorage(context, photoFile)
+
+                // eliminamos la foto en caché, ya no la necesitamos
+                if (photoFile.exists()) {
+                    photoFile.delete()
+                }
 
                 // Devolvemos la ruta final y segura
                 onPhotoTaken(permanentPath)
