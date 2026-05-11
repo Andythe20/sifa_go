@@ -84,6 +84,9 @@ fun CameraScreen(
     // Variable para controlar si mostramos el formulario de multa
     var showTicketForm by remember { mutableStateOf(false) }
 
+    // variable para adjuntar todas las fotos que se suban al backend
+    var evidencePhotoPaths by remember { mutableStateOf(mutableListOf<String>()) }
+
     // Verificamos si hay algún proceso activo en pantalla que no sea la cámara en vivo
     val isShowingProcess = sifaViewModel.isLoading ||
             sifaViewModel.detectedPlate != null ||
@@ -93,8 +96,11 @@ fun CameraScreen(
 
     // Interceptamos el botón físico "Atrás" del celular
     BackHandler(enabled = isShowingProcess) {
-        // primero eliminamos la foto que se tomó
-        ImageUtils.deleteImageFile(capturedPhotoPath)
+        // Borramos TODAS las fotos de la sesión actual
+        evidencePhotoPaths.forEach { path ->
+            ImageUtils.deleteImageFile(path)
+        }
+        evidencePhotoPaths.clear() // Vaciamos la lista
 
         // Luego, limpiamos la memoria
         sifaViewModel.clearProcess()
@@ -136,8 +142,11 @@ fun CameraScreen(
             onAnimationFinished = {
                 // Esto se ejecuta cuando se termina la animación
 
-                // borramos la foto en caché (carpeta evidencia_multas)
-                ImageUtils.deleteImageFile(capturedPhotoPath)
+                // borramos todas las evidencias fisicas
+                evidencePhotoPaths.forEach { path ->
+                    ImageUtils.deleteImageFile(path)
+                }
+                evidencePhotoPaths.clear()
 
                 // Cerramos el formulario y limpiamos la ruta de la foto de la UI
                 showTicketForm = false
@@ -189,11 +198,10 @@ fun CameraScreen(
                     patenteVehiculo = coreViewModel.vehicleData!!.patente,
                     idTipoInfraccion = idInfraccion,
                     observaciones = observaciones,
-                    urlsEvidencias = listOf(capturedPhotoPath ?: "evidencia_local_pendiente")
                 )
 
                 // Disparamos la petición POST
-                coreViewModel.submitInfraccion(request)
+                coreViewModel.submitInfraccion(request, evidencePhotoPaths)
             }
         )
 
@@ -206,7 +214,10 @@ fun CameraScreen(
             },
             onNewScanClick = {
                 // limpiamos la foto física antes de reiniciar el proceso
-                ImageUtils.deleteImageFile(capturedPhotoPath)
+                evidencePhotoPaths.forEach { path ->
+                    ImageUtils.deleteImageFile(path)
+                }
+                evidencePhotoPaths.clear()
 
                 // Limpiamos AMBOS ViewModel para reiniciar todo desde cero
                 capturedPhotoPath = null
@@ -230,7 +241,10 @@ fun CameraScreen(
             },
             onRetakePhoto = {
                 // limpiamos la foto física antes de reiniciar el proceso
-                ImageUtils.deleteImageFile(capturedPhotoPath)
+                evidencePhotoPaths.forEach { path ->
+                    ImageUtils.deleteImageFile(path)
+                }
+                evidencePhotoPaths.clear()
 
                 capturedPhotoPath = null
                 sifaViewModel.clearProcess()
@@ -244,14 +258,15 @@ fun CameraScreen(
         }
     } else if (capturedPhotoPath != null) {
 
-        // VISTA 1: PREVISUALIZACIÓN
+        // VISTA PREVISUALIZACIÓN
         PreviewScreen(
             photoPath = capturedPhotoPath!!,
             onRetakePhoto = {
                 // limpiamos la foto física antes de reiniciar el proceso
                 ImageUtils.deleteImageFile(capturedPhotoPath)
+                evidencePhotoPaths.remove(capturedPhotoPath)
 
-                // Al volver a null, Jetpack Compose vuelve a dibujar la cámara instantáneamente
+                    // Al volver a null, Jetpack Compose vuelve a dibujar la cámara instantáneamente
                 capturedPhotoPath = null
             },
             onSendPhoto = { finalPath ->
@@ -277,6 +292,7 @@ fun CameraScreen(
                             mainExecutor,
                         ) { path ->
                             capturedPhotoPath = path
+                            evidencePhotoPaths.add(path)
                         }
                     },
                     containerColor = Color.White, // Puedes poner el color principal de tu app

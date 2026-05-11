@@ -29,7 +29,6 @@ data class InfraccionCreateRequest(
     val patenteVehiculo: String,
     val idTipoInfraccion: Int,  // ID obtenido de la lista de tipos de infracción
     val observaciones: String?,
-    val urlsEvidencias: List<String> // Lista de URLs o nombres de archivos de fotos
 )
 
 /*

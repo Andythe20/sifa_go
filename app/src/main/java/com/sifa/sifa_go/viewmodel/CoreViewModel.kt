@@ -135,7 +135,7 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
                 // Enviar la petición
                 val response = CoreRetrofitClient.apiService.createInfraccion(
                     token = "Bearer $token",
-                    request = request,
+                    request = jsonRequest,
                     fotos = fotoParts
                 )
 

@@ -6,10 +6,9 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.POST
 import retrofit2.http.GET
-import retrofit2.http.Body
-import com.sifa.sifa_go.data.model.InfraccionCreateRequest
 import com.sifa.sifa_go.data.model.InfraccionResponse
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.Part
@@ -40,7 +39,7 @@ interface CoreApiService {
     @POST("/core/api/v1/infracciones")
     suspend fun createInfraccion(
         @Header("Authorization") token: String,
-        @Part("infraccion") request: InfraccionCreateRequest, // Los metadatos en JSON
+        @Part("infraccion") request: RequestBody, // Los metadatos en JSON
         @Part fotos: List<MultipartBody.Part>     // Los archivos reales
     ): InfraccionResponse
 }
