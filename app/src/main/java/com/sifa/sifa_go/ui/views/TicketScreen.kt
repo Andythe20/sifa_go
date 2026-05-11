@@ -3,40 +3,44 @@ package com.sifa.sifa_go.ui.views
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.sifa.sifa_go.data.model.PlateInfoResponse
 import com.sifa.sifa_go.data.model.TipoInfraccionResponse
 import com.sifa.sifa_go.ui.theme.SIFA_GOTheme
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TicketScreen(
     vehicleData: PlateInfoResponse,
     tiposInfraccion: List<TipoInfraccionResponse>,
-    mainPhotoPath: String?, // La foto que ya tomamos al escanear la patente
+    evidencePhotos: List<String>, // La foto que ya tomamos al escanear la patente
     latitude: Double?,
     longitude: Double?,
     isSubmitting: Boolean = false, // Estado que viene desde el ViewModel (bloquea la UI)
     onCancelClick: () -> Unit,
-    onSubmitClick: (Int, String, Double?, Double?) -> Unit // Pasa el ID de la infracción, observaciones y coordenadas
+    onSubmitClick: (Int, String, Double?, Double?) -> Unit, // Pasa el ID de la infracción, observaciones y coordenadas
+    onAddPhotoClick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     var selectedTipo by remember { mutableStateOf<TipoInfraccionResponse?>(null) }
@@ -174,7 +178,7 @@ fun TicketScreen(
 
         // 3. SECCIÓN DE FOTOS DE RESPALDO
         Text(
-            text = "FOTOS DE RESPALDO",
+            text = "FOTOS DE RESPALDO (${evidencePhotos.size})",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier
@@ -182,34 +186,40 @@ fun TicketScreen(
                 .padding(bottom = 8.dp)
         )
 
-        Row(
+        LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Foto principal (la que se tomó para leer la patente)
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.LightGray),
-                contentAlignment = Alignment.Center
-            ) {
-                if (mainPhotoPath != null) {
-                    Icon(Icons.Filled.Image, contentDescription = "Foto capturada", tint = Color.Gray)
-                }
+            // Dibujamos cada foto real de la lista
+            items(evidencePhotos) { photoPath ->
+                AsyncImage(
+                    model = File(photoPath),
+                    contentDescription = "Evidencia",
+                    contentScale = ContentScale.Crop, // Corta la imagen para llenar el cuadrado
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.LightGray)
+                )
             }
 
-            // Botón para agregar más fotos
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    .clickable(enabled = !isSubmitting) { /* TODO: Lógica para tomar otra foto */ },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Filled.AddAPhoto, contentDescription = "Agregar foto", tint = if (isSubmitting) Color.Gray else MaterialTheme.colorScheme.primary)
+            // El botón de agregar foto siempre al final
+            item {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                        .clickable(enabled = !isSubmitting) { onAddPhotoClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Filled.AddAPhoto,
+                            contentDescription = "Agregar foto",
+                            tint = if (isSubmitting) Color.Gray else MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
@@ -253,54 +263,5 @@ fun TicketScreen(
         ) {
             Text("CANCELAR", color = if (isSubmitting) Color.Gray else MaterialTheme.colorScheme.error)
         }
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF, device = "id:pixel_5")
-@Composable
-fun TicketScreenPreview() {
-    // 1. Envolvemos la vista en el tema principal para heredar colores y tipografías
-    SIFA_GOTheme {
-        // 2. Llamamos a la vista principal pasándole datos simulados (mocks)
-        TicketScreen(
-            // Datos simulados del vehículo basados en tu modelo actual
-            vehicleData = PlateInfoResponse(
-                patente = "TZPW11",
-                marca = "TOYOTA",
-                modelo = "YARIS",
-                anio_fabricacion = 2020,
-                color = "BLANCO",
-                nro_motor = "1NZFE1234567",
-                nro_serie = "JTD1234567890",
-                rut = "12.345.678-9",
-                propietario = "JUAN PÉREZ"
-            ),
-
-            // Lista simulada de los tipos de infracciones que enviaría tu backend
-            tiposInfraccion = listOf(
-                TipoInfraccionResponse(id = 1, nombre = "Estacionar en lugar prohibido o señalizado"),
-                TipoInfraccionResponse(id = 2, nombre = "Exceso de velocidad (Falta Gravísima)"),
-                TipoInfraccionResponse(id = 3, nombre = "Conducir manipulando dispositivo móvil"),
-                TipoInfraccionResponse(id = 4, nombre = "Desobedecer señal de Carabineros")
-            ),
-
-            // Simulamos que ya se tomó la foto principal de la patente
-            mainPhotoPath = "/storage/emulated/0/dummy_path/foto_patente.jpg",
-
-            // Coordenadas simuladas (Viña del Mar) para la futura georreferenciación
-            latitude = -33.0245,
-            longitude = -71.5518,
-
-            // Simulamos que el formulario está en estado normal (no se está enviando a la API)
-            isSubmitting = false,
-
-            // Funciones vacías para los botones, ya que en la previsualización no hay navegación
-            onCancelClick = {
-                println("Clic en Cancelar")
-            },
-            onSubmitClick = { idInfraccion, observaciones, lat, lng ->
-                println("Clic en Emitir: ID=$idInfraccion, Obs=$observaciones, Coords=$lat, $lng")
-            }
-        )
     }
 }

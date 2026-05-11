@@ -6,13 +6,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
 import com.sifa.sifa_go.core.network.CoreRetrofitClient
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.PlateInfoResponse
 import com.sifa.sifa_go.data.model.TipoInfraccionResponse
 import com.sifa.sifa_go.data.model.InfraccionCreateRequest
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
+import java.io.File
 
 class CoreViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -105,6 +111,7 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun submitInfraccion(
         request: InfraccionCreateRequest,
+        imagePaths: List<String>
     ) {
         viewModelScope.launch {
             isSubmittingInfraccion = true
@@ -113,10 +120,29 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
             
             try {
                 val token = sessionManager.getToken() ?: ""
+
+                // Convertir el DTO a JSON RequestBody
+                val jsonRequest = Gson().toJson(request)
+                    .toRequestBody("application/json".toMediaTypeOrNull())
+
+                // Convertir la lista de rutas en MultipartBody.Part
+                val fotoParts = imagePaths.map { path ->
+                    val file = File(path)
+                    val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                    MultipartBody.Part.createFormData("fotos", file.name, requestFile)
+                }
+
+                // Enviar la petición
                 val response = CoreRetrofitClient.apiService.createInfraccion(
                     token = "Bearer $token",
-                    request = request
+                    request = jsonRequest,
+                    fotos = fotoParts
                 )
+
+                // Imprimir para debuggear
+                println(response)
+                println(request)
+
                 submitSuccess = true // Notifica a la UI que el proceso terminó bien
             } catch (e: HttpException) {
                 errorMessage = "Error al guardar la infracción: ${e.code()}"
