@@ -7,6 +7,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.POST
 import retrofit2.http.GET
 import com.sifa.sifa_go.data.model.InfraccionResponse
+import com.sifa.sifa_go.data.model.InfraccionHistoryItem
+import retrofit2.http.Query
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.http.Header
@@ -42,10 +44,16 @@ interface CoreApiService {
         @Part("infraccion") request: RequestBody, // Los metadatos en JSON
         @Part fotos: List<MultipartBody.Part>     // Los archivos reales
     ): InfraccionResponse
+
+    @GET("/core/api/v1/infracciones/all")
+    suspend fun getInfractionsHistory(
+        @Header("Authorization") token: String,
+        @Query("date") date: String
+    ): List<InfraccionHistoryItem>
 }
 
 object CoreRetrofitClient {
-    private const val BASE_URL = "http://192.168.0.11:9000"
+    private const val BASE_URL = "http://44.196.188.33"
 
     val apiService: CoreApiService by lazy {
         Retrofit.Builder()

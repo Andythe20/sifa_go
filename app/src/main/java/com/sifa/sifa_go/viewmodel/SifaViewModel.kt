@@ -8,8 +8,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sifa.sifa_go.core.network.CoreRetrofitClient
 import com.sifa.sifa_go.core.network.RetrofitClient
 import com.sifa.sifa_go.core.utils.SessionManager
+import com.sifa.sifa_go.data.model.InfraccionHistoryItem
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -43,6 +45,11 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
     var gpsAccuracy by mutableStateOf<Float?>(null)
     // Contador para los logs de calibración
     var gpsAttemptCount by mutableIntStateOf(0)
+
+    // Variables para el historial de infracciones
+    var infractionsHistory by mutableStateOf<List<InfraccionHistoryItem>>(emptyList())
+    var historyLoading by mutableStateOf(false)
+    var historyError by mutableStateOf<String?>(null)
 
     /**
      * Procesa cada uno de los 5 intentos de ubicación.
@@ -118,6 +125,26 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
                 println(e)
             } finally {
                 isLoading = false
+            }
+        }
+    }
+
+    fun loadInfractionsHistory(date: String) {
+        viewModelScope.launch {
+            historyLoading = true
+            historyError = null
+            try {
+                val token = sessionManager.getToken() ?: ""
+                val response = CoreRetrofitClient.apiService.getInfractionsHistory(
+                    token = "Bearer $token",
+                    date = date
+                )
+                infractionsHistory = response
+            } catch (e: Exception) {
+                historyError = "Error al cargar el historial: ${e.message}"
+                println(e)
+            } finally {
+                historyLoading = false
             }
         }
     }

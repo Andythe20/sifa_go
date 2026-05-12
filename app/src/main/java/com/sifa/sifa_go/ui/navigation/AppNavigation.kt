@@ -39,6 +39,7 @@ import com.sifa.sifa_go.viewmodel.SifaViewModel
 import com.sifa.sifa_go.R
 import com.sifa.sifa_go.ui.views.CreditsScreen
 import com.sifa.sifa_go.ui.views.HelpScreen
+import com.sifa.sifa_go.ui.views.HistoryScreen
 
 
 @Composable
@@ -198,9 +199,7 @@ fun MainAppNavigation(
             }
 
             composable("history") {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Pantalla de Historial en construcción")
-                }
+                HistoryScreen(sifaViewModel = sifaViewModel)
             }
 
             composable("reports") {

@@ -1,5 +1,7 @@
 package com.sifa.sifa_go.data.model
 
+import com.google.gson.annotations.SerializedName
+
 data class PlateInfoResponse(
     val patente: String,
     val marca: String,
@@ -38,4 +40,54 @@ data class InfraccionResponse(
     val id: String?,
     val status: String?,
     val timestamp: String?
+)
+
+data class InfractionLocation(
+    val address: String?,
+    val lat: Double?,
+    val lng: Double?
+)
+
+data class InfractionVehicle(
+    val brand: String?,
+    val color: String?,
+    val model: String?,
+    val plate: String?,
+    val type: String?
+)
+
+data class InfractionDenunciado(
+    val comuna: String?,
+    val direccion: String?,
+    val edad: String?,
+    val estadoCivil: String?,
+    val nombre: String?,
+    val profesion: String?,
+    val rut: String?
+)
+
+data class InfractionTramitacion(
+    val fechaCitacion: String?,
+    val listadoCorte: Boolean?
+)
+
+data class InfraccionHistoryItem(
+    val id: String,
+    val status: String,
+    val timestamp: String,
+    val infractionDescription: String?,
+    val numeroBoleta: String?,
+    val numeroParte: String?,
+    val agentId: String?,
+    val infractionCode: String?,
+    val disposicionInfringida: String?,
+    val location: InfractionLocation?,
+    val vehicle: InfractionVehicle?,
+    @SerializedName("denunciado")
+    val denunciado: InfractionDenunciado?,
+    val tramitacion: InfractionTramitacion?,
+    val photoUrl: String?,
+    val evidenceUrls: List<String>?,
+    val denunciante: String?,
+    val amount: Double?
 )
