@@ -35,7 +35,7 @@ data class InfraccionCreateRequest(
   Respuesta del servidor tras crear exitosamente una infracción.
  */
 data class InfraccionResponse(
-    val idInfraccion: Int,
-    val lugar: String,
-    val estado: String
+    val id: String?,
+    val status: String?,
+    val timestamp: String?
 )
