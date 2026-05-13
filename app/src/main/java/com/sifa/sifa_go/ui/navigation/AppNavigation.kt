@@ -2,16 +2,12 @@ package com.sifa.sifa_go.ui.navigation
 
 import androidx.camera.view.LifecycleCameraController
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +38,7 @@ import com.sifa.sifa_go.R
 import com.sifa.sifa_go.ui.views.CreditsScreen
 import com.sifa.sifa_go.ui.views.HelpScreen
 import com.sifa.sifa_go.ui.views.HistoryScreen
+import com.sifa.sifa_go.ui.views.ProfileScreen
 
 
 @Composable
@@ -212,22 +209,9 @@ fun MainAppNavigation(
             }
 
             composable("profile") {
-                /* TODO: esta vista debe tener su propio archivo, por ahora solo es de prueba */
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Perfil del Fiscalizador", modifier = Modifier.padding(bottom = 24.dp))
-
-                    // Botón de cerrar sesión con un color de error (rojo) por defecto en Material3
-                    Button(
-                        onClick = { onLogout() },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text("Cerrar Sesión")
-                    }
-                }
+                ProfileScreen(
+                    onLogout = onLogout
+                )
             }
         }
     }
