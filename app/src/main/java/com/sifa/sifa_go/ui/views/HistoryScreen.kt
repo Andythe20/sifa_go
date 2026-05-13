@@ -114,13 +114,13 @@ fun HistoryScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "No hay infracciones registradas hoy",
-                            color = Color.Gray,
+                            text = "No has registrado infracciones hoy",
+                            color = MaterialTheme.colorScheme.primary,
                             fontSize = 16.sp
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Las infracciones que crees hoy aparecerán aquí",
+                            text = "Las infracciones que crees aparecerán aquí",
                             color = Color.Gray.copy(alpha = 0.7f),
                             fontSize = 14.sp
                         )

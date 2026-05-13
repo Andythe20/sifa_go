@@ -43,6 +43,7 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
     // --- NUEVAS VARIABLES PARA CALIBRACIÓN ---
     // Guardamos la precisión para saber cuál es el mejor de los 5 intentos
     var gpsAccuracy by mutableStateOf<Float?>(null)
+
     // Contador para los logs de calibración
     var gpsAttemptCount by mutableIntStateOf(0)
 
@@ -67,7 +68,10 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
             latitude = location.latitude
             longitude = location.longitude
             gpsAccuracy = currentAccuracy
-            Log.d("GPS_SIFA", "✅ Nueva mejor ubicación capturada: ${location.latitude}, ${location.longitude}")
+            Log.d(
+                "GPS_SIFA",
+                "Nueva mejor ubicación capturada: ${location.latitude}, ${location.longitude}"
+            )
         }
     }
 
@@ -129,17 +133,32 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Función para cargar el historial de infracciones desde el backend
     fun loadInfractionsHistory(date: String) {
         viewModelScope.launch {
+
             historyLoading = true
             historyError = null
+
             try {
                 val token = sessionManager.getToken() ?: ""
+                val user = sessionManager.getUsername() ?: ""
                 val response = CoreRetrofitClient.apiService.getInfractionsHistory(
                     token = "Bearer $token",
-                    date = date
+                    date = date,
+                    user = user
                 )
-                infractionsHistory = response
+
+                if (response.isSuccessful) {
+                    infractionsHistory =
+                        if (response.code() == 204) {
+                            emptyList()
+                        } else {
+                            response.body() ?: emptyList()
+                        }
+                } else {
+                    historyError = "Error del servidor: ${response.code()}"
+                }
             } catch (e: Exception) {
                 historyError = "Error al cargar el historial: ${e.message}"
                 println(e)

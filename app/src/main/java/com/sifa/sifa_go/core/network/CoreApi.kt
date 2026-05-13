@@ -11,6 +11,7 @@ import com.sifa.sifa_go.data.model.InfraccionHistoryItem
 import retrofit2.http.Query
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import retrofit2.Response
 import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.Part
@@ -48,8 +49,9 @@ interface CoreApiService {
     @GET("/core/api/v1/infracciones/all")
     suspend fun getInfractionsHistory(
         @Header("Authorization") token: String,
-        @Query("date") date: String
-    ): List<InfraccionHistoryItem>
+        @Query("date") date: String,
+        @Query("user") user: String
+    ): Response<List<InfraccionHistoryItem>>
 }
 
 object CoreRetrofitClient {
