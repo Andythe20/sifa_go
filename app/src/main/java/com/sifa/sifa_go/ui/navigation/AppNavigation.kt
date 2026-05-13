@@ -27,7 +27,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.sifa.sifa_go.core.network.GpsStatus
 import com.sifa.sifa_go.core.network.NetworkStatus
+import com.sifa.sifa_go.core.network.rememberGpsStatus
 import com.sifa.sifa_go.core.network.rememberNetworkStatus
 import com.sifa.sifa_go.core.utils.BiometricHelper
 import com.sifa.sifa_go.core.utils.SessionManager
@@ -52,11 +54,12 @@ fun AppNavigation() {
 
     // Observador de red global - disponible en todas las pantallas
     val networkStatus = rememberNetworkStatus()
+    val gpsStatus = rememberGpsStatus()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Banner de red global - aparece en todas las vistas
         NetworkBanner(
             networkStatus = networkStatus.value,
+            gpsStatus = gpsStatus.value,
             modifier = Modifier.fillMaxWidth()
         )
 
