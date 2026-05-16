@@ -184,17 +184,6 @@ private fun ProfileContent(
                 )
 
                 ProfileInfoRow(
-                    icon = Icons.Filled.Cake,
-                    label = "Fecha de nacimiento",
-                    value = user.birthDate
-                )
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-
-                ProfileInfoRow(
                     icon = Icons.Filled.Email,
                     label = "Correo electrónico",
                     value = user.email
@@ -219,7 +208,7 @@ private fun ProfileContent(
                 ProfileInfoRow(
                     icon = Icons.Filled.Shield,
                     label = "Rol",
-                    value = user.role
+                    value = if (user.role == "USER_APP") "Fiscalizador" else user.role
                 )
             }
         }
