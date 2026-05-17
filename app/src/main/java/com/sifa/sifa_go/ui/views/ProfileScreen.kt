@@ -32,6 +32,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,6 +104,34 @@ private fun ProfileContent(
     user: UserResponse,
     onLogout: () -> Unit
 ) {
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Cerrar Sesión") },
+            text = { Text("¿Estás seguro de que deseas cerrar sesión?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutDialog = false
+                        onLogout()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Cerrar Sesión")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showLogoutDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -216,7 +249,7 @@ private fun ProfileContent(
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = onLogout,
+            onClick = { showLogoutDialog = true },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
