@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -48,9 +49,16 @@ fun HistoryScreen(
 ) {
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     val today = dateFormat.format(Date())
+    var isRefreshing by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         sifaViewModel.loadInfractionsHistory(today)
+    }
+
+    LaunchedEffect(sifaViewModel.historyLoading) {
+        if (!sifaViewModel.historyLoading && isRefreshing) {
+            isRefreshing = false
+        }
     }
 
     Column(
@@ -77,65 +85,78 @@ fun HistoryScreen(
                 .padding(horizontal = 20.dp)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+Spacer(modifier = Modifier.height(16.dp))
 
-        when {
-            sifaViewModel.historyLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                isRefreshing = true
+                sifaViewModel.loadInfractionsHistory(today)
+            },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            when {
+                sifaViewModel.historyLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
                 }
-            }
 
-            sifaViewModel.historyError != null -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = sifaViewModel.historyError ?: "Error desconocido",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { sifaViewModel.loadInfractionsHistory(today) }) {
-                            Text("Reintentar")
+                sifaViewModel.historyError != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        ) {
+                            Text(
+                                text = sifaViewModel.historyError ?: "Error desconocido",
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { sifaViewModel.loadInfractionsHistory(today) }) {
+                                Text("Reintentar")
+                            }
                         }
                     }
                 }
-            }
 
-            sifaViewModel.infractionsHistory.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "No has registrado infracciones hoy",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 16.sp
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Las infracciones que crees aparecerán aquí",
-                            color = Color.Gray.copy(alpha = 0.7f),
-                            fontSize = 14.sp
-                        )
+                sifaViewModel.infractionsHistory.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "No has registrado infracciones hoy",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 16.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Las infracciones que crees aparecerán aquí",
+                                color = Color.Gray.copy(alpha = 0.7f),
+                                fontSize = 14.sp
+                            )
+                        }
                     }
                 }
-            }
 
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(sifaViewModel.infractionsHistory) { infraction ->
-                        InfractionHistoryCard(infraction = infraction)
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(sifaViewModel.infractionsHistory) { infraction ->
+                            InfractionHistoryCard(infraction = infraction)
+                        }
                     }
                 }
             }
