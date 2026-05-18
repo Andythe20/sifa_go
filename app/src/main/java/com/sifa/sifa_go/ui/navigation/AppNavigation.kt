@@ -60,6 +60,7 @@ fun AppNavigation() {
             modifier = Modifier.fillMaxWidth()
         )
 
+        // Debe empezar en check_auth ya que ahí se revisa si hay una sesión activa
         NavHost(navController = rootNavController, startDestination = "check_auth") {
 
             // RUTA DE DECISIÓN (Invisible para el usuario)
@@ -69,6 +70,7 @@ fun AppNavigation() {
                     if (token == null) {
                         // No hay sesión -> Al Login
                         rootNavController.navigate("login") {
+                            // Eliminamos el historial de pantallas para que no pueda volver con el botón "Atrás", incluyendo el check_auth
                             popUpTo("check_auth") { inclusive = true }
                         }
                     } else {
