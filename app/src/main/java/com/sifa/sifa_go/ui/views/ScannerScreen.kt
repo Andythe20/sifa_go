@@ -11,6 +11,7 @@ import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -70,6 +71,7 @@ import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.core.app.ActivityCompat
 
 
@@ -117,6 +119,9 @@ fun CameraScreen(
     // para saber si estamos sacando una foto extra
     var isTakingEvidencePhoto by remember { mutableStateOf(false) }
 
+    // para saber si el GPS está calibrando
+    var isGPSCalibrating by remember { mutableStateOf(false) }
+
     // Verificamos si hay algún proceso activo en pantalla que no sea la cámara en vivo
     val isShowingProcess = sifaViewModel.isLoading ||
             sifaViewModel.detectedPlate != null ||
@@ -142,28 +147,31 @@ fun CameraScreen(
         permissionState.launchMultiplePermissionRequest()
     }
 
-    // Cada vez que entramos a la cámara o reiniciamos el proceso, intentamos capturar GPS
-    // MEJORA: Ahora realiza una ráfaga de 5 calibraciones para mayor exactitud
-    LaunchedEffect(capturedPhotoPath, permissionState.allPermissionsGranted) {
-        if (capturedPhotoPath == null && permissionState.allPermissionsGranted) {
-            Log.d("GPS_SIFA", "Iniciando ráfaga de 5 calibraciones de precisión...")
-            locationHelper.startPrecisionCalibration { location ->
-                // Enviamos cada intento al ViewModel para que capture el más exacto
-                sifaViewModel.processCalibrationStep(location)
-
-                // MEJORA: Obtener dirección legible una vez tengamos coordenadas (Geocoding)
-                locationHelper.getAddressFromLocation(
-                    location.latitude,
-                    location.longitude
-                ) { address ->
-                    if (address != null) {
-                        mainExecutor.execute {
-                            Log.d("GPS_SIFA", "Dirección obtenida: $address")
-                        }
-                        sifaViewModel.currentAddress = address
+    fun triggerGPSCalibration() {
+        isGPSCalibrating = true
+        Log.d("GPS_SIFA", "Iniciando ráfaga de 5 calibraciones de precisión...")
+        locationHelper.startPrecisionCalibration { location ->
+            sifaViewModel.processCalibrationStep(location)
+            locationHelper.getAddressFromLocation(
+                location.latitude,
+                location.longitude
+            ) { address ->
+                if (address != null) {
+                    mainExecutor.execute {
+                        Log.d("GPS_SIFA", "Dirección obtenida: $address")
                     }
+                    sifaViewModel.currentAddress = address
                 }
             }
+        }
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            isGPSCalibrating = false
+        }, 5000)
+    }
+
+    LaunchedEffect(capturedPhotoPath, permissionState.allPermissionsGranted) {
+        if (capturedPhotoPath == null && permissionState.allPermissionsGranted) {
+            triggerGPSCalibration()
         }
     }
 
@@ -404,17 +412,35 @@ fun CameraScreen(
                     // 2. El recuadro con el texto superpuesto
                     ScannerOverlay()
 
-                    // Indicador visual del estado del GPS (Opcional)
                     sifaViewModel.gpsAccuracy?.let { accuracy ->
-                        Text(
-                            text = "GPS: ${accuracy.toInt()}m",
-                            color = if (accuracy < 10f) Color.Green else Color.Yellow,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                        Row(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(16.dp)
-                        )
+                                .clickable(enabled = !isGPSCalibrating) { triggerGPSCalibration() },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (isGPSCalibrating) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color.White
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.MyLocation,
+                                    contentDescription = "Recalibrar GPS",
+                                    tint = if (accuracy < 10f) Color.Green else Color.Yellow,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Text(
+                                text = " GPS: ${accuracy.toInt()}m",
+                                color = if (accuracy < 10f) Color.Green else Color.Yellow,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
                     }
                 }
             } else {
