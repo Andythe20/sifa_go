@@ -37,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -118,14 +119,16 @@ private fun ProfileContent(
                         onLogout()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Text("Cerrar Sesión")
                 }
             },
             dismissButton = {
-                Button(onClick = { showLogoutDialog = false }) {
+                OutlinedButton(
+                    onClick = { showLogoutDialog = false }
+                ) {
                     Text("Cancelar")
                 }
             }
