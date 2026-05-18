@@ -168,7 +168,7 @@ Spacer(modifier = Modifier.height(16.dp))
 fun InfractionHistoryCard(infraction: InfraccionHistoryItem) {
     var expanded by remember { mutableStateOf(false) }
 
-    val statusColor = when (infraction.status.lowercase()) {
+    val statusColor = when (infraction.status?.lowercase()) {
         "en proceso", "pending" -> Color(0xFFFF5722)
         "completada", "completado" -> Color(0xFF4CAF50)
         "cancelada", "cancelado" -> Color(0xFFF11A00)
@@ -192,16 +192,10 @@ fun InfractionHistoryCard(infraction: InfraccionHistoryItem) {
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Boleta: ${infraction.numeroBoleta ?: "N/A"}",
+                        text = "ID: ${infraction.id ?: "N/A"}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
                         color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "ID: ${infraction.id}",
-                        fontSize = 12.sp,
-                        color = Color.Gray
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -219,7 +213,7 @@ fun InfractionHistoryCard(infraction: InfraccionHistoryItem) {
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = formatTimestamp(infraction.timestamp),
+                        text = formatTimestamp(infraction.fecha?: "N/A"),
                         fontSize = 11.sp,
                         color = Color.Gray
                     )
@@ -273,7 +267,7 @@ fun InfractionHistoryCard(infraction: InfraccionHistoryItem) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Denunciado: ${infraction.denunciado?.nombre ?: "N/A"}",
+                        text = "Denunciado: ${infraction.propietario?.nombreCompleto ?: "N/A"}",
                         fontSize = 13.sp
                     )
                 }
@@ -289,7 +283,7 @@ fun InfractionHistoryCard(infraction: InfraccionHistoryItem) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "RUT: ${infraction.denunciado?.rut ?: "N/A"}",
+                        text = "RUT: ${infraction.propietario?.rut ?: "N/A"}",
                         fontSize = 13.sp
                     )
                 }
@@ -312,26 +306,25 @@ fun InfractionHistoryCard(infraction: InfraccionHistoryItem) {
                     )
                 }
 
-                if (!infraction.disposicionInfringida.isNullOrBlank()) {
+                if (!infraction.tipoInfraccion?.disposicionInfringida.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Disposición: ${infraction.disposicionInfringida}",
+                        text = "Disposición: ${infraction.tipoInfraccion?.disposicionInfringida}",
                         fontSize = 12.sp,
                         color = Color.Gray
                     )
                 }
 
-                if (!infraction.infractionDescription.isNullOrBlank()) {
+                if (!infraction.observaciones.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Observaciones: ${infraction.infractionDescription}",
+                        text = "Observaciones: ${infraction.observaciones}",
                         fontSize = 12.sp,
                         color = Color.Gray
                     )
                 }
 
                 val allImages = buildList {
-                    infraction.photoUrl?.let { add(it) }
                     infraction.evidenceUrls?.let { addAll(it) }
                 }.distinct()
 

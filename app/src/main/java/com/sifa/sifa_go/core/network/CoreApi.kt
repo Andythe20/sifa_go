@@ -55,7 +55,7 @@ interface CoreApiService {
 }
 
 object CoreRetrofitClient {
-    private const val BASE_URL = "http://44.196.188.33"
+    private const val BASE_URL = "http://192.168.100.79:9000"
 
     val apiService: CoreApiService by lazy {
         Retrofit.Builder()
