@@ -27,7 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -63,6 +63,7 @@ import com.sifa.sifa_go.viewmodel.SifaViewModel
 import com.sifa.sifa_go.core.utils.ImageUtils
 import com.sifa.sifa_go.core.utils.LocationHelper
 import com.sifa.sifa_go.core.utils.SessionManager
+import com.sifa.sifa_go.core.network.GpsStatus
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import java.io.File
@@ -70,6 +71,7 @@ import java.util.concurrent.Executor
 import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.core.app.ActivityCompat
@@ -82,6 +84,7 @@ fun CameraScreen(
     cameraController: LifecycleCameraController,
     sifaViewModel: SifaViewModel = viewModel(), // Inyectamos el ViewModel
     coreViewModel: CoreViewModel = viewModel(),
+    gpsStatus: GpsStatus = GpsStatus.Available,
     onPhotoConfirmed: (String) -> Unit
 ) {
     val permissionState = rememberMultiplePermissionsState(
@@ -412,35 +415,57 @@ fun CameraScreen(
                     // 2. El recuadro con el texto superpuesto
                     ScannerOverlay()
 
-                    sifaViewModel.gpsAccuracy?.let { accuracy ->
-                        Row(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(16.dp)
-                                .clickable(enabled = !isGPSCalibrating) { triggerGPSCalibration() },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (isGPSCalibrating) {
+                    // Mostrar indicador de GPS (X si desactivado, icono normal si activo)
+                    val isGpsAvailable = gpsStatus is GpsStatus.Available
+
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp)
+                            .clickable(enabled = isGpsAvailable && !isGPSCalibrating) { triggerGPSCalibration() },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        when {
+                            isGPSCalibrating -> {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(16.dp),
                                     strokeWidth = 2.dp,
                                     color = Color.White
                                 )
-                            } else {
+                            }
+                            !isGpsAvailable -> {
                                 Icon(
-                                    imageVector = Icons.Default.MyLocation,
-                                    contentDescription = "Recalibrar GPS",
-                                    tint = if (accuracy < 10f) Color.Green else Color.Yellow,
+                                    imageVector = Icons.Default.LocationOff,
+                                    contentDescription = "GPS desactivado",
+                                    tint = Color.Red,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
-                            Text(
-                                text = " GPS: ${accuracy.toInt()}m",
-                                color = if (accuracy < 10f) Color.Green else Color.Yellow,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            )
+                            else -> {
+                                sifaViewModel.gpsAccuracy?.let { accuracy ->
+                                    Icon(
+                                        imageVector = Icons.Default.MyLocation,
+                                        contentDescription = "Recalibrar GPS",
+                                        tint = if (accuracy < 10f) Color.Green else Color.Yellow,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
                         }
+
+                        val accuracyText = if (!isGpsAvailable) " GPS: --" else sifaViewModel.gpsAccuracy?.let { " GPS: ${it.toInt()}m" } ?: " GPS: --"
+                        val accuracyColor = when {
+                            !isGpsAvailable -> Color.Red
+                            sifaViewModel.gpsAccuracy?.let { it < 10f } == true -> Color.Green
+                            else -> Color.Yellow
+                        }
+
+                        Text(
+                            text = accuracyText,
+                            color = accuracyColor,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
                     }
                 }
             } else {

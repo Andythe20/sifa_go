@@ -123,6 +123,7 @@ fun AppNavigation() {
             composable("main_app") {
                 // Llamamos a la función que contiene el MainLayout y el segundo enrutador
                 MainAppNavigation(
+                    gpsStatus = gpsStatus.value,
                     onLogout = {
                         sessionManager.logout() // Borramos el token y el username del celular
                         rootNavController.navigate("login") {
@@ -153,6 +154,7 @@ fun AppNavigation() {
 @Composable
 fun MainAppNavigation(
     sifaViewModel: SifaViewModel = viewModel(),
+    gpsStatus: GpsStatus = GpsStatus.Available,
     onLogout: () -> Unit
 ) {
     // ENRUTADOR DE PESTAÑAS: Maneja las vistas DENTRO del MainLayout
@@ -193,6 +195,7 @@ fun MainAppNavigation(
                 CameraScreen(
                     cameraController = cameraController, // Pasamos el controlador seguro
                     sifaViewModel = sifaViewModel,
+                    gpsStatus = gpsStatus,
                     onPhotoConfirmed = { pathToUpload ->
                         sifaViewModel.currentPhotoPath = pathToUpload
                         println("Enviando foto al backend: $pathToUpload")
