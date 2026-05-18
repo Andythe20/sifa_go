@@ -52,42 +52,49 @@ data class InfractionVehicle(
     val brand: String?,
     val color: String?,
     val model: String?,
+    val nroMotor: String?,
+    val nroSerie: String?,
     val plate: String?,
-    val type: String?
+    val type: String?,
+    val year: Int?
 )
 
-data class InfractionDenunciado(
+data class InfractionPropietario(
     val comuna: String?,
+    val correo: String?,
     val direccion: String?,
     val edad: String?,
     val estadoCivil: String?,
-    val nombre: String?,
+    val nombreCompleto: String?,
     val profesion: String?,
-    val rut: String?
+    val rut: String?,
+    val telefono: String?
 )
 
-data class InfractionTramitacion(
-    val fechaCitacion: String?,
-    val listadoCorte: Boolean?
+data class TipoInfraccion(
+    val id: Int,
+    val nombre: String,
+    val disposicionInfringida: String?
 )
 
 data class InfraccionHistoryItem(
-    val id: String,
+    @SerializedName("idInfraccion", alternate = ["id"])
+    val id: String?,
+    val idFiscalizador: String?,
+    val idUsuarioJPL: String?,
+    val fecha: String?,
     val status: String,
-    val timestamp: String,
-    val infractionDescription: String?,
-    val numeroBoleta: String?,
-    val numeroParte: String?,
-    val agentId: String?,
-    val infractionCode: String?,
-    val disposicionInfringida: String?,
+    val motivoRechazo: String?,
+    val fechaResolucion: String?,
+    val observaciones: String?,
+    // nodo tipo infraccion
+    val tipoInfraccion: TipoInfraccion?,
+    // nodo location
     val location: InfractionLocation?,
+    // nodo vehicle
     val vehicle: InfractionVehicle?,
-    @SerializedName("denunciado")
-    val denunciado: InfractionDenunciado?,
-    val tramitacion: InfractionTramitacion?,
-    val photoUrl: String?,
-    val evidenceUrls: List<String>?,
-    val denunciante: String?,
-    val amount: Double?
+    // nodo denunciado
+    val propietario: InfractionPropietario?,
+    // nodo evidencias urls
+    val evidenceUrls: List<String>?
 )
