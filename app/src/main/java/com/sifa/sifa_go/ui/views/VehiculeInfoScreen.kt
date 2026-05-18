@@ -3,6 +3,7 @@ package com.sifa.sifa_go.ui.views
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -21,8 +22,14 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -40,6 +47,39 @@ fun VehicleInfoScreen(
     onIssueFineClick: () -> Unit,
     onNewScanClick: () -> Unit
 ) {
+    var showConfirmDialog by remember { mutableStateOf(false) }
+
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("Nuevo Escaneo") },
+            text = { Text("¿Está seguro que desea realizar un nuevo escaneo? Se perderán los datos actuales.") },
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { showConfirmDialog = false },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancelar")
+                    }
+                    Button(
+                        onClick = {
+                            showConfirmDialog = false
+                            onNewScanClick()
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Escanear")
+                    }
+                }
+            },
+            dismissButton = {}
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -49,7 +89,7 @@ fun VehicleInfoScreen(
     ) {
         // Titulo pequeño encima
         Row(
-            verticalAlignment =  Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start,
             modifier = Modifier
                 .padding(top = 20.dp, start = 15.dp)
@@ -146,7 +186,7 @@ fun VehicleInfoScreen(
                         )
                     }
                 }
-                }
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -213,13 +253,14 @@ fun VehicleInfoScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedButton(
-                onClick = onNewScanClick,
+                onClick = { showConfirmDialog = true },
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Text(text = "NUEVO ESCANEO",
+                Text(
+                    text = "NUEVO ESCANEO",
                     color = MaterialTheme.colorScheme.primary
                 )
             }
@@ -231,7 +272,9 @@ fun VehicleInfoScreen(
 @Composable
 fun InfoCard(label: String, value: String, value2: String? = null) {
     var bottomDp = 10
-    if (value2 != null) { bottomDp = 0 }
+    if (value2 != null) {
+        bottomDp = 0
+    }
 
     Card(
         modifier = Modifier
