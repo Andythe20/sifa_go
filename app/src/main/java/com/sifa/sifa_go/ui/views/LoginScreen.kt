@@ -2,6 +2,7 @@ package com.sifa.sifa_go.ui.views
 
 import android.util.Patterns
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,11 +10,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
@@ -48,6 +53,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sifa.sifa_go.R
 import com.sifa.sifa_go.viewmodel.AuthViewModel
@@ -59,6 +67,8 @@ fun LoginScreen(
     onNavigateToCredits: () -> Unit,
     onNavigateToHelp: () -> Unit
 ) {
+    // Permite controlar el salto entre campos de texto
+    val focusManager = LocalFocusManager.current
 
     // variables para manejo de estados
     var email by remember { mutableStateOf("") }
@@ -83,7 +93,9 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(24.dp)
+                .imePadding()
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -120,7 +132,13 @@ fun LoginScreen(
                 },
                 label = { Text("Correo Electrónico") },
                 leadingIcon = { Icon(Icons.Filled.Email, contentDescription = "Icono correo") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                ),
                 singleLine = true,
                 isError = emailError != null, // Pinta el borde de rojo si hay un error
                 modifier = Modifier.fillMaxWidth()
@@ -160,7 +178,13 @@ fun LoginScreen(
                     }
                 },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { focusManager.clearFocus() }
+                ),
                 singleLine = true,
                 isError = passwordError != null, // Pinta el borde de rojo si hay un error
                 modifier = Modifier.fillMaxWidth()
@@ -240,6 +264,7 @@ fun LoginScreen(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .statusBarsPadding()
+
             //.padding(top = 32.dp, end = 8.dp)
         ) {
             IconButton(onClick = { menuExpanded = true }) {
@@ -251,7 +276,9 @@ fun LoginScreen(
             }
 
             DropdownMenu(
-                expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                expanded = menuExpanded, onDismissRequest = { menuExpanded = false },
+                modifier = Modifier.background(MaterialTheme.colorScheme.background)
+            ) {
 
                 DropdownMenuItem(text = { Text("Ayuda") }, leadingIcon = {
                     Icon(

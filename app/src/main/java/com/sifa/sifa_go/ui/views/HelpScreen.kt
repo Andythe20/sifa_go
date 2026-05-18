@@ -1,5 +1,6 @@
 package com.sifa.sifa_go.ui.views
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,11 +29,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,8 +43,10 @@ fun HelpScreen(
     onBack: () -> Unit
 ) {
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(MaterialTheme.colorScheme.background),
                 title = {
                     Text("Ayuda")
                 },
@@ -68,8 +73,9 @@ fun HelpScreen(
 
             Text(
                 text = "Centro de Ayuda SIFA GO",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+                fontSize = 24.sp,
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.headlineMedium
             )
 
             Text(
@@ -122,8 +128,6 @@ fun HelpScreen(
                 description = "Si la aplicación no responde, verifica tu conexión a internet o reinicia la sesión desde Perfil."
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
             Text(
                 text = "Versión 1.0.0",
                 style = MaterialTheme.typography.bodySmall,
@@ -140,7 +144,11 @@ fun HelpCard(
     description: String
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
