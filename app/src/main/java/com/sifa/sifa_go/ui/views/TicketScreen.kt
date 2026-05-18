@@ -15,6 +15,8 @@ import androidx.compose.material3.*
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import com.sifa.sifa_go.core.network.CoreRetrofitClient
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -33,7 +35,8 @@ import java.io.File
 @Composable
 fun TicketScreen(
     vehicleData: PlateInfoResponse,
-    tiposInfraccion: List<TipoInfraccionResponse>,
+    tiposInfraccion: List<TipoInfraccionResponse> = emptyList(),
+    authToken: String = "",
     evidencePhotos: List<String>, // La foto que ya tomamos al escanear la patente
     latitude: Double?,
     longitude: Double?,
@@ -45,6 +48,27 @@ fun TicketScreen(
     var expanded by remember { mutableStateOf(false) }
     var selectedTipo by remember { mutableStateOf<TipoInfraccionResponse?>(null) }
     var observaciones by remember { mutableStateOf("") }
+    var localTiposInfraccion by remember { mutableStateOf<List<TipoInfraccionResponse>>(tiposInfraccion) }
+    var isLoading by remember { mutableStateOf(tiposInfraccion.isEmpty()) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(tiposInfraccion, authToken) {
+        if (tiposInfraccion.isEmpty() && authToken.isNotEmpty()) {
+            isLoading = true
+            try {
+                val response = CoreRetrofitClient.apiService.getAllTipoInfracciones("Bearer $authToken")
+                localTiposInfraccion = response
+            } catch (e: Exception) {
+                println("Error cargando tipos de infraccion: $e")
+            } finally {
+                isLoading = false
+            }
+        } else if (tiposInfraccion.isNotEmpty()) {
+            localTiposInfraccion = tiposInfraccion
+        }
+    }
+
+    val displayTiposInfraccion = if (localTiposInfraccion.isNotEmpty()) localTiposInfraccion else tiposInfraccion
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -143,10 +167,13 @@ fun TicketScreen(
                 modifier = Modifier
                     .background(MaterialTheme.colorScheme.onPrimary)
             ) {
-                if (tiposInfraccion.isEmpty()) {
-                    DropdownMenuItem(text = { Text("Cargando infracciones...") }, onClick = { })
+                if (displayTiposInfraccion.isEmpty()) {
+                    DropdownMenuItem(
+                        text = { Text(if (isLoading) "Cargando infracciones..." else "No hay infracciones disponibles") },
+                        onClick = { }
+                    )
                 } else {
-                    tiposInfraccion.forEach { tipo ->
+                    displayTiposInfraccion.forEach { tipo ->
                         DropdownMenuItem(
                             text = { Text(tipo.nombre, color = MaterialTheme.colorScheme.onBackground) },
                             onClick = {

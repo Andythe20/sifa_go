@@ -12,8 +12,13 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
@@ -22,7 +27,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,10 +61,13 @@ import com.sifa.sifa_go.viewmodel.CoreViewModel
 import com.sifa.sifa_go.viewmodel.SifaViewModel
 import com.sifa.sifa_go.core.utils.ImageUtils
 import com.sifa.sifa_go.core.utils.LocationHelper
+import com.sifa.sifa_go.core.utils.SessionManager
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import java.io.File
 import java.util.concurrent.Executor
+import android.app.Activity
+import androidx.core.app.ActivityCompat
 
 
 // Vista de camara y permisos
@@ -66,7 +78,7 @@ fun CameraScreen(
     sifaViewModel: SifaViewModel = viewModel(), // Inyectamos el ViewModel
     coreViewModel: CoreViewModel = viewModel(),
     onPhotoConfirmed: (String) -> Unit
-){
+) {
     val permissionState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.CAMERA,
@@ -75,6 +87,15 @@ fun CameraScreen(
         )
     )
     val context = LocalContext.current
+    val activity = context as Activity
+
+    // Detectar si android aún puede mostrar el popup
+    val shouldShowRationale =
+        ActivityCompat.shouldShowRequestPermissionRationale(
+            activity,
+            Manifest.permission.CAMERA
+        )
+
     val lifecycle = LocalLifecycleOwner.current
     val locationHelper = remember { LocationHelper(context) }
 
@@ -128,7 +149,10 @@ fun CameraScreen(
                 sifaViewModel.processCalibrationStep(location)
 
                 // MEJORA: Obtener dirección legible una vez tengamos coordenadas (Geocoding)
-                locationHelper.getAddressFromLocation(location.latitude, location.longitude) { address ->
+                locationHelper.getAddressFromLocation(
+                    location.latitude,
+                    location.longitude
+                ) { address ->
                     if (address != null) {
                         mainExecutor.execute {
                             Log.d("GPS_SIFA", "Dirección obtenida: $address")
@@ -141,7 +165,6 @@ fun CameraScreen(
     }
 
     // INTERCAMBIO DE VISTAS
-
     if (coreViewModel.submitSuccess) {
         // VISTA DE EXITO AL REGISTRAR INFRACCION
         TicketSuccessScreen(
@@ -172,17 +195,15 @@ fun CameraScreen(
     } else if (showTicketForm && coreViewModel.vehicleData != null) {
         // VISTA DEL FORMULARIO DE INFRACCIÓN
 
-        // Pedimos la lista de infracciones al servidor la primera vez que se abre esto
-        LaunchedEffect(Unit) {
-            if (coreViewModel.tiposInfraccion.isEmpty()) {
-                coreViewModel.fetchTiposInfraccion()
-            }
-        }
+        val context = LocalContext.current
+        val sessionManager = remember { SessionManager(context) }
+        val authToken = sessionManager.getToken() ?: ""
 
         Box(modifier = Modifier.fillMaxSize()) {
             TicketScreen(
                 vehicleData = coreViewModel.vehicleData!!,
                 tiposInfraccion = coreViewModel.tiposInfraccion,
+                authToken = authToken,
                 evidencePhotos = evidencePhotoPaths,
                 latitude = sifaViewModel.latitude,
                 longitude = sifaViewModel.longitude,
@@ -285,7 +306,8 @@ fun CameraScreen(
         // VISTA DEL RESULTADO DE LA PATENTE
         PlateResultScreen(
             initialPlate = sifaViewModel.detectedPlate,
-            errorMessage = coreViewModel.errorMessage ?: sifaViewModel.detectionError, // Mostramos error de IA o del Core
+            errorMessage = coreViewModel.errorMessage
+                ?: sifaViewModel.detectionError, // Mostramos error de IA o del Core
             isLoading = coreViewModel.isLoading, // Le pasamos el estado de carga del Core API
             onConsultClick = { finalPlate ->
                 // Borramos errores anteriores por el plate detector service en caso de que core service devuelva uno.
@@ -322,7 +344,7 @@ fun CameraScreen(
                 ImageUtils.deleteImageFile(capturedPhotoPath)
                 evidencePhotoPaths.remove(capturedPhotoPath)
 
-                    // Al volver a null, Jetpack Compose vuelve a dibujar la cámara instantáneamente
+                // Al volver a null, Jetpack Compose vuelve a dibujar la cámara instantáneamente
                 capturedPhotoPath = null
             },
             onSendPhoto = { finalPath ->
@@ -338,9 +360,13 @@ fun CameraScreen(
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = {
-                        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+                        val formatter =
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
                         sifaViewModel.captureTime = java.time.LocalDateTime.now().format(formatter)
-                        Log.d("SIFA_TIME", "Hora de fiscalización capturada (Truco UTC): ${sifaViewModel.captureTime}")
+                        Log.d(
+                            "SIFA_TIME",
+                            "Hora de fiscalización capturada (Truco UTC): ${sifaViewModel.captureTime}"
+                        )
 
                         takePicture(
                             cameraController,
@@ -389,7 +415,56 @@ fun CameraScreen(
                     }
                 }
             } else {
-                Text("Permiso Denegado", modifier = Modifier.padding(paddingValues))
+                // Si no tenemos permisos, mostramos un feedback
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        elevation = CardDefaults.cardElevation(6.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(56.dp)
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Text(
+                                text = "Permisos requeridos",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = "La aplicación necesita acceso a la cámara y el GPS del dispositivo para escanear patentes.",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            Button(
+                                onClick = {
+                                    permissionState.launchMultiplePermissionRequest()
+                                }
+                            ) {
+                                Text("Conceder permiso")
+                            }
+                        }
+                    }
+                }
             }
         }
     }
