@@ -12,6 +12,7 @@ import com.sifa.sifa_go.core.network.CoreRetrofitClient
 import com.sifa.sifa_go.core.network.RetrofitClient
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.InfraccionHistoryItem
+import com.sifa.sifa_go.exception.NetworkErrorHandler
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -160,7 +161,7 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
                     historyError = "Error del servidor: ${response.code()}"
                 }
             } catch (e: Exception) {
-                historyError = "Error al cargar el historial: ${e.message}"
+                historyError = "Error al cargar el historial: ${NetworkErrorHandler.getExceptionMessage(e)}"
                 println(e)
             } finally {
                 historyLoading = false
