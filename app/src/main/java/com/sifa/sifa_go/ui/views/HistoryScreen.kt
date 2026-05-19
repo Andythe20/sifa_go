@@ -170,8 +170,8 @@ fun InfractionHistoryCard(infraction: InfraccionHistoryItem) {
 
     val statusColor = when (infraction.status?.lowercase()) {
         "en proceso", "pending" -> Color(0xFFFF5722)
-        "completada", "completado" -> Color(0xFF4CAF50)
-        "cancelada", "cancelado" -> Color(0xFFF11A00)
+        "exported", "completado", -> Color(0xFF4CAF50)
+        "cancelada", "rejected" -> Color(0xFFF11A00)
         else -> Color.Gray
     }
 
