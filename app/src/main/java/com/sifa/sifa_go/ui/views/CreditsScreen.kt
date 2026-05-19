@@ -335,7 +335,7 @@ private fun getContributors(): List<Contributor> = listOf(
         role = "Full Stack Developer",
         avatarUrl = "https://github.com/Andythe20.png",
         github = "https://github.com/Andythe20/Proyecto-Fullstack2-React",
-        linkedin = "www.linkedin.com/in/andres-ortega-suazo",
+        linkedin = "https://www.linkedin.com/in/andres-ortega-suazo/",
         website = null,
         email = "an.ortegas@duocuc.cl"
     )

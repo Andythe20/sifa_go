@@ -66,14 +66,6 @@ fun MainLayout(
                         }
                     }
                 },
-                actions = {
-                    IconButton(onClick = onProfileClick) {
-                        Icon(
-                            imageVector = Icons.Filled.AccountCircle,
-                            contentDescription = "Perfil del fiscalizador"
-                        )
-                    }
-                }
             )
         },
         bottomBar = {
