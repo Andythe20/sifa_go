@@ -1,5 +1,6 @@
 package com.sifa.sifa_go.core.network
 
+import com.sifa.sifa_go.data.model.FiscalizadorHeartbeatRequest
 import com.sifa.sifa_go.data.model.PlateInfoResponse
 import com.sifa.sifa_go.data.model.TipoInfraccionResponse
 import retrofit2.Retrofit
@@ -8,10 +9,12 @@ import retrofit2.http.POST
 import retrofit2.http.GET
 import com.sifa.sifa_go.data.model.InfraccionResponse
 import com.sifa.sifa_go.data.model.InfraccionHistoryItem
+import com.sifa.sifa_go.data.model.SpringPageResponse
 import retrofit2.http.Query
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.Part
@@ -49,13 +52,22 @@ interface CoreApiService {
     @GET("/core/api/v1/infracciones/all")
     suspend fun getInfractionsHistory(
         @Header("Authorization") token: String,
-        @Query("date") date: String,
-        @Query("user") user: String
-    ): Response<List<InfraccionHistoryItem>>
+        @Query("startDate") startDate: String?,
+        @Query("endDate") endDate: String?,
+        @Query("user") user: String?,
+        @Query("page") page: Int = 0,   // Nueva query para controlar qué página pides
+        @Query("size") size: Int = 10   // Nueva query para definir cuántos registros traer
+    ): Response<SpringPageResponse<InfraccionHistoryItem>> // Mapeado al Wrapper
+
+    @POST("/core/api/v1/fis-activity/heartbeat")
+    suspend fun sendHeartbeat(
+        @Header("Authorization") token: String,
+        @Body request: FiscalizadorHeartbeatRequest
+    ): Response<Unit>
 }
 
 object CoreRetrofitClient {
-    private const val BASE_URL = "http://44.196.188.33"
+    private const val BASE_URL = "http://192.168.100.61:9000"
 
     val apiService: CoreApiService by lazy {
         Retrofit.Builder()

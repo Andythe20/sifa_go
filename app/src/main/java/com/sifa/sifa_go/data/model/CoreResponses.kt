@@ -42,6 +42,10 @@ data class InfraccionResponse(
     val timestamp: String?
 )
 
+/** -----------------------------------------------
+ * DTOs para mapear la respuesta del backend con las infracciones
+ * ------------------------------------------------
+ * */
 data class InfractionLocation(
     val address: String?,
     val lat: Double?,
@@ -77,6 +81,30 @@ data class TipoInfraccion(
     val disposicionInfringida: String?
 )
 
+// wrapper para respuesta de las infracciones
+data class SpringPageResponse<T>(
+    @SerializedName("content")
+    val content: List<T>,
+
+    @SerializedName("totalPages")
+    val totalPages: Int,
+
+    @SerializedName("totalElements")
+    val totalElements: Int,
+
+    @SerializedName("last")
+    val isLast: Boolean,
+
+    @SerializedName("first")
+    val isFirst: Boolean,
+
+    @SerializedName("size")
+    val size: Int,
+
+    @SerializedName("number")
+    val pageNumber: Int
+)
+
 data class InfraccionHistoryItem(
     @SerializedName("idInfraccion", alternate = ["id"])
     val id: String?,
@@ -97,4 +125,14 @@ data class InfraccionHistoryItem(
     val propietario: InfractionPropietario?,
     // nodo evidencias urls
     val evidenceUrls: List<String>?
+)
+
+
+/**/
+data class FiscalizadorHeartbeatRequest(
+    @SerializedName("latitud")
+    val latitud: Double,
+
+    @SerializedName("longitud")
+    val longitud: Double
 )
