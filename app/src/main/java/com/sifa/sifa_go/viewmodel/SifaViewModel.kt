@@ -206,17 +206,18 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
                 val user = sessionManager.getUsername() ?: ""
                 val response = CoreRetrofitClient.apiService.getInfractionsHistory(
                     token = "Bearer $token",
-                    date = date,
+                    startDate = date,
+                    endDate = date,
                     user = user
                 )
 
                 if (response.isSuccessful) {
-                    infractionsHistory =
-                        if (response.code() == 204) {
-                            emptyList()
-                        } else {
-                            response.body() ?: emptyList()
-                        }
+                    // Extraemos el cuerpo de la respuesta
+                    val pageResponse = response.body()
+
+                    // Si por alguna razón la respuesta completa o el content vienen nulos,
+                    // usamos el operador elvis (?:) para asignar una lista vacía segura.
+                    infractionsHistory = pageResponse?.content ?: emptyList()
                 } else {
                     historyError = "Error del servidor: ${response.code()}"
                 }
