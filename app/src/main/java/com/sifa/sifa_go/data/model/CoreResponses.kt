@@ -42,6 +42,10 @@ data class InfraccionResponse(
     val timestamp: String?
 )
 
+/** -----------------------------------------------
+ * DTOs para mapear la respuesta del backend con las infracciones
+ * ------------------------------------------------
+ * */
 data class InfractionLocation(
     val address: String?,
     val lat: Double?,
@@ -121,4 +125,14 @@ data class InfraccionHistoryItem(
     val propietario: InfractionPropietario?,
     // nodo evidencias urls
     val evidenceUrls: List<String>?
+)
+
+
+/**/
+data class FiscalizadorHeartbeatRequest(
+    @SerializedName("latitud")
+    val latitud: Double,
+
+    @SerializedName("longitud")
+    val longitud: Double
 )

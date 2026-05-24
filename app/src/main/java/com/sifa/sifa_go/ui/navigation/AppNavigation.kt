@@ -39,6 +39,8 @@ import com.sifa.sifa_go.ui.views.CreditsScreen
 import com.sifa.sifa_go.ui.views.HelpScreen
 import com.sifa.sifa_go.ui.views.HistoryScreen
 import com.sifa.sifa_go.ui.views.ProfileScreen
+import com.sifa.sifa_go.viewmodel.CoreViewModel
+import com.sifa.sifa_go.viewmodel.PresenceViewModel
 
 
 @Composable
@@ -121,10 +123,19 @@ fun AppNavigation() {
 
             // RUTA RAÍZ 2: El contenedor de toda tu aplicación principal
             composable("main_app") {
+                val context = LocalContext.current
+
+                val presenceViewModel: PresenceViewModel = viewModel()
+
+                LaunchedEffect(Unit) {
+                    presenceViewModel.startHeartbeatEngine(context, sessionManager)
+                }
+
                 // Llamamos a la función que contiene el MainLayout y el segundo enrutador
                 MainAppNavigation(
                     gpsStatus = gpsStatus.value,
                     onLogout = {
+                        presenceViewModel.stopHeartbeatEngine()
                         sessionManager.logout() // Borramos el token y el username del celular
                         rootNavController.navigate("login") {
                             // Limpiamos absolutamente todo el historial de pantallas para que no pueda volver con el botón "Atrás"

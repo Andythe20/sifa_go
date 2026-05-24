@@ -1,5 +1,6 @@
 package com.sifa.sifa_go.core.network
 
+import com.sifa.sifa_go.data.model.FiscalizadorHeartbeatRequest
 import com.sifa.sifa_go.data.model.PlateInfoResponse
 import com.sifa.sifa_go.data.model.TipoInfraccionResponse
 import retrofit2.Retrofit
@@ -13,6 +14,7 @@ import retrofit2.http.Query
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.Part
@@ -56,6 +58,12 @@ interface CoreApiService {
         @Query("page") page: Int = 0,   // Nueva query para controlar qué página pides
         @Query("size") size: Int = 10   // Nueva query para definir cuántos registros traer
     ): Response<SpringPageResponse<InfraccionHistoryItem>> // Mapeado al Wrapper
+
+    @POST("/core/api/v1/fis-activity/heartbeat")
+    suspend fun sendHeartbeat(
+        @Header("Authorization") token: String,
+        @Body request: FiscalizadorHeartbeatRequest
+    ): Response<Unit>
 }
 
 object CoreRetrofitClient {
