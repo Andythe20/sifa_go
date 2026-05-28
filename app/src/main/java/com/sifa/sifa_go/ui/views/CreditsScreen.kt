@@ -309,7 +309,6 @@ private fun ContributorAvatar(avatarUrl: String?) {
     }
 }
 
-// ─── Datos de ejemplo (reemplazar por carga desde assets/API) ────
 // Agrega más colaboradores aquí siguiendo la misma estructura
 private fun getContributors(): List<Contributor> = listOf(
     Contributor(
@@ -317,7 +316,7 @@ private fun getContributors(): List<Contributor> = listOf(
         role = "Full Stack Developer",
         avatarUrl = "https://github.com/Nicolas-15.png",
         github = "https://github.com/Nicolas-15/",
-        linkedin = null,
+        linkedin = "https://www.linkedin.com/in/nicolas-alejandro-lopez-plaza-13973a399/",
         website = null,
         email = null
     ),
