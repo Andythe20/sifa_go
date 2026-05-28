@@ -38,7 +38,7 @@ interface CoreApiService {
     @GET("/core/api/v1/tipoInfracciones/all")
     suspend fun getAllTipoInfracciones(
         @Header("Authorization") token: String
-    ): List<TipoInfraccionResponse>
+    ): Response<SpringPageResponse<TipoInfraccionResponse>>
 
     // Envia los datos de la multa al Core Service a través del Gateway
     @Multipart
@@ -67,7 +67,7 @@ interface CoreApiService {
 }
 
 object CoreRetrofitClient {
-    private const val BASE_URL = "http://192.168.100.61:9000"
+    private const val BASE_URL = "http://192.168.100.54:9000"
 
     val apiService: CoreApiService by lazy {
         Retrofit.Builder()

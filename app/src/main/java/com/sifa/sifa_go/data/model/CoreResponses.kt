@@ -83,7 +83,7 @@ data class TipoInfraccion(
     val disposicionInfringida: String?
 )
 
-// wrapper para respuesta de las infracciones
+// wrapper para respuestas que usan el Page
 data class SpringPageResponse<T>(
     @SerializedName("content")
     val content: List<T>,

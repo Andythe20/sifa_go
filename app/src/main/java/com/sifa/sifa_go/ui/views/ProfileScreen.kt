@@ -166,8 +166,10 @@ private fun ProfileContent(
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
+            val initialName = user.name?.firstOrNull()?.toString() ?: ""
+            val initialLastName = user.lastName?.firstOrNull()?.toString() ?: ""
             Text(
-                text = "${user.name.firstOrNull() ?: ""}${user.lastName.firstOrNull() ?: ""}",
+                text = "$initialName$initialLastName",
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -177,7 +179,7 @@ private fun ProfileContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "${user.name} ${user.lastName}",
+            text = "${user.name ?: ""} ${user.lastName ?: ""}".trim(),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
@@ -209,7 +211,7 @@ private fun ProfileContent(
                 ProfileInfoRow(
                     icon = Icons.Filled.Badge,
                     label = "RUT",
-                    value = "${user.rut}-${user.dv}"
+                    value = if (user.rut != null) "${user.rut}-${user.dv ?: ""}" else "No disponible"
                 )
 
                 HorizontalDivider(
@@ -220,7 +222,7 @@ private fun ProfileContent(
                 ProfileInfoRow(
                     icon = Icons.Filled.Person,
                     label = "Nombre",
-                    value = user.name
+                    value = user.name?: "No disponible"
                 )
 
                 HorizontalDivider(
@@ -231,7 +233,7 @@ private fun ProfileContent(
                 ProfileInfoRow(
                     icon = Icons.Filled.Person,
                     label = "Apellido",
-                    value = user.lastName
+                    value = user.lastName?: "No disponible"
                 )
 
                 HorizontalDivider(
@@ -242,7 +244,7 @@ private fun ProfileContent(
                 ProfileInfoRow(
                     icon = Icons.Filled.Email,
                     label = "Correo electrónico",
-                    value = user.email
+                    value = user.email?: "No disponible"
                 )
 
                 HorizontalDivider(
@@ -253,7 +255,7 @@ private fun ProfileContent(
                 ProfileInfoRow(
                     icon = Icons.Filled.Phone,
                     label = "Teléfono",
-                    value = user.phone
+                    value = user.phone?: "No disponible"
                 )
 
                 HorizontalDivider(
@@ -264,7 +266,7 @@ private fun ProfileContent(
                 ProfileInfoRow(
                     icon = Icons.Filled.Shield,
                     label = "Rol",
-                    value = if (user.role == "USER_APP") "Fiscalizador" else user.role
+                    value = if (user.role == "USER_APP") "Fiscalizador" else (user.role ?: "")
                 )
             }
         }

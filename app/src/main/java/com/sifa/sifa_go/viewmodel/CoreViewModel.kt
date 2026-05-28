@@ -86,8 +86,20 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
             isLoadingTipos = true
             try {
                 val token = sessionManager.getToken() ?: ""
-                // Llamamos al nuevo endpoint
-                tiposInfraccion = CoreRetrofitClient.apiService.getAllTipoInfracciones("Bearer $token")
+                // Llamamos al endpoint y recibimos el objeto paginado
+                val paginatedResponse = CoreRetrofitClient.apiService.getAllTipoInfracciones("Bearer $token")
+
+                if (paginatedResponse.isSuccessful){
+                    // Extraemos la lista plana desde la llave 'content'
+                    val pageResponse = paginatedResponse.body()
+
+                    // Si por alguna razón la respuesta completa o el content vienen nulos,
+                    // usamos el operador elvis (?:) para asignar una lista vacía segura.
+                    tiposInfraccion = pageResponse?.content ?: emptyList()
+                } else {
+                    errorMessage = "Error del servidor: ${paginatedResponse.code()}"
+                }
+
             } catch (e: HttpException) {
                 // Retrofit lanza HttpException cuando el backend responde con un error (400, 404, 500)
                 errorMessage = when (e.code()) {

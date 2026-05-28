@@ -28,7 +28,7 @@ object AuthRetrofitClient {
     // Modificar ip dependiendo a qué red te conectes
     // En local tanto tu móvil como el pc deben estar conectados al mismo wi-fi
     // "http://44.196.188.33"
-    private const val BASE_URL = "http://192.168.100.61:9000"
+    private const val BASE_URL = "http://192.168.100.54:9000"
 
     val apiService: AuthApiService by lazy {
         Retrofit.Builder()
