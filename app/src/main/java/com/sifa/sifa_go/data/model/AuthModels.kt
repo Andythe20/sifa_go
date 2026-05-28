@@ -15,16 +15,16 @@ data class LoginResponse(
 )
 
 data class UserResponse(
-    val rut: String,
-    val dv: String,
-    val name: String,
-    val lastName: String,
-    val birthDate: String,
-    val email: String,
-    val phone: String,
-    val role: String,
-    val createdAt: String,
-    val modifiedAt: String,
+    val rut: String?,
+    val dv: String?,
+    val name: String?,
+    val lastName: String?,
+    val birthDate: String?,
+    val email: String?,
+    val phone: String?,
+    val role: String?,
+    val createdAt: String?,
+    val modifiedAt: String?,
     val active: Boolean
 )
 

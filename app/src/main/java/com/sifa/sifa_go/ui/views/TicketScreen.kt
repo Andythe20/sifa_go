@@ -57,7 +57,12 @@ fun TicketScreen(
             isLoading = true
             try {
                 val response = CoreRetrofitClient.apiService.getAllTipoInfracciones("Bearer $authToken")
-                localTiposInfraccion = response
+                if (response.isSuccessful) {
+                    localTiposInfraccion = response.body()?.content ?: emptyList()
+                } else {
+                    println("Error del servidor al cargar tipos en UI: ${response.code()}")
+                    localTiposInfraccion = emptyList()
+                }
             } catch (e: Exception) {
                 println("Error cargando tipos de infraccion: $e")
             } finally {

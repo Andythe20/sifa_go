@@ -435,6 +435,7 @@ private fun TicketFormWithOverlay(
                     patenteVehiculo = coreViewModel.vehicleData!!.patente,
                     idTipoInfraccion = idInfraccion,
                     observaciones = observaciones,
+                    fechaCitacion = null
                 )
                 coreViewModel.submitInfraccion(request, evidencePhotoPaths.toList())
             },
