@@ -158,18 +158,14 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
             detectedPlate = null
             detectionError = null
             try {
-                // Obtenemos el token guardado en el celular
-                val token = sessionManager.getToken() ?: ""
-
                 val file = File(filePath)
 
                 // Preparamos el archivo para enviarlo por HTTP
                 val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
                 val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
 
-                // Hacemos la llamada a la API incluyendo el token
+                // Hacemos la llamada a la API
                 val response = RetrofitClient.apiService.detectPlate(
-                    token = "Bearer $token",
                     file = body
                 )
 
@@ -202,10 +198,8 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
             historyError = null
 
             try {
-                val token = sessionManager.getToken() ?: ""
                 val user = sessionManager.getUsername() ?: ""
                 val response = CoreRetrofitClient.apiService.getInfractionsHistory(
-                    token = "Bearer $token",
                     startDate = date,
                     endDate = date,
                     user = user

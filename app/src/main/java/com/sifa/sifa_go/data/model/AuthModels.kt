@@ -7,6 +7,21 @@ data class LoginRequest(
 
 data class LoginResponse(
     val accessToken: String,
+    val refreshToken: String,
+    val tokenType: String,
+    val sub: String,
+    val iat: Long,
+    val exp: Long,
+    val roles: List<String>
+)
+
+data class RefreshTokenRequest(
+    val refreshToken: String
+)
+
+data class RefreshTokenResponse(
+    val accessToken: String,
+    val refreshToken: String,
     val tokenType: String,
     val sub: String,
     val iat: Long,

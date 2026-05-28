@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sifa.sifa_go.core.network.AuthRetrofitClient
+import com.sifa.sifa_go.core.network.NetworkModule
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.LoginRequest
 import com.sifa.sifa_go.exception.NetworkErrorHandler
@@ -15,6 +16,10 @@ import kotlinx.coroutines.launch
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     private val sessionManager = SessionManager(application)
+
+    init {
+        NetworkModule.init(application)
+    }
 
     var isLoading by mutableStateOf(false)
     var loginError by mutableStateOf<String?>(null)
@@ -44,8 +49,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                             // GUARDAR SESIÓN
                             sessionManager.saveSession(
                                 token = body.accessToken,
+                                refreshToken = body.refreshToken,
                                 username = body.sub,
-                                roles = body.roles
+                                roles = body.roles,
+                                expiry = body.exp
                             )
                             isLoginSuccessful = true
                         } else {

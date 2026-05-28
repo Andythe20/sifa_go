@@ -27,9 +27,7 @@ class PresenceViewModel : ViewModel() {
 
         heartbeatJob = viewModelScope.launch {
             while (true) {
-                val token = sessionManager.getToken() ?: ""
-
-                if (token.isNotEmpty()) {
+                if (sessionManager.getToken() != null) {
                     locationHelper.startPrecisionCalibration { location ->
                         val request = FiscalizadorHeartbeatRequest(
                             latitud = location.latitude,
@@ -39,7 +37,6 @@ class PresenceViewModel : ViewModel() {
                         viewModelScope.launch {
                             try {
                                 val response = CoreRetrofitClient.apiService.sendHeartbeat(
-                                    token = "Bearer $token",
                                     request = request
                                 )
                                 if (response.isSuccessful) {

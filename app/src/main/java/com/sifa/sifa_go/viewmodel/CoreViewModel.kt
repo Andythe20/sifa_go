@@ -47,12 +47,7 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
             vehicleData = null
 
             try {
-                // Obtenemos el token guardado en el celular
-                val token = sessionManager.getToken() ?: ""
-
-                // Hacemos la petición añadiendo "Bearer " al inicio del token
                 val response = CoreRetrofitClient.apiService.getPlateInfo(
-                    token = "Bearer $token",
                     id = plate
                 )
 
@@ -85,9 +80,7 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             isLoadingTipos = true
             try {
-                val token = sessionManager.getToken() ?: ""
-                // Llamamos al endpoint y recibimos el objeto paginado
-                val paginatedResponse = CoreRetrofitClient.apiService.getAllTipoInfracciones("Bearer $token")
+                val paginatedResponse = CoreRetrofitClient.apiService.getAllTipoInfracciones()
 
                 if (paginatedResponse.isSuccessful){
                     // Extraemos la lista plana desde la llave 'content'
@@ -135,8 +128,6 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
             submitSuccess = false
             
             try {
-                val token = sessionManager.getToken() ?: ""
-
                 //  Primero parsearemos la fecha de la infracción que viene en el request en formato ISO
                 val fechaInfraccionDateTime = LocalDateTime.parse(request.fecha)
 
@@ -174,7 +165,6 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 // Enviar la petición
                 val response = CoreRetrofitClient.apiService.createInfraccion(
-                    token = "Bearer $token",
                     request = jsonRequest,
                     fotos = fotoParts
                 )

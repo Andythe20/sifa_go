@@ -13,6 +13,8 @@ class SessionManager(context: Context) {
 
         // Las claves para almacenar los datos de sesión
         private const val KEY_TOKEN = "TOKEN"
+        private const val KEY_REFRESH_TOKEN = "REFRESH_TOKEN"
+        private const val KEY_TOKEN_EXPIRY = "TOKEN_EXPIRY"
         private const val KEY_USERNAME = "USERNAME"
         private const val KEY_ROLES = "ROLES"
     }
@@ -25,13 +27,17 @@ class SessionManager(context: Context) {
     // Guardar los datos de sesión
     fun saveSession(
         token: String,
+        refreshToken: String,
         username: String,
-        roles: List<String>
+        roles: List<String>,
+        expiry: Long? = null
     ) {
         prefs.edit().apply {
             putString(KEY_TOKEN, token)
+            putString(KEY_REFRESH_TOKEN, refreshToken)
             putString(KEY_USERNAME, username)
             putStringSet(KEY_ROLES, roles.toSet())
+            if (expiry != null) putLong(KEY_TOKEN_EXPIRY, expiry)
             apply() // apply() guarda de forma asíncrona (más rápido)
         }
     }
@@ -39,6 +45,12 @@ class SessionManager(context: Context) {
     // Obtener datos
     fun getToken(): String? =
         prefs.getString(KEY_TOKEN, null)
+
+    fun getRefreshToken(): String? =
+        prefs.getString(KEY_REFRESH_TOKEN, null)
+
+    fun getTokenExpiry(): Long =
+        prefs.getLong(KEY_TOKEN_EXPIRY, 0L)
 
     fun getUsername(): String? =
         prefs.getString(KEY_USERNAME, null)
@@ -53,9 +65,9 @@ class SessionManager(context: Context) {
         return getRoles().contains("USER_APP")
     }
 
-    // Validar si la sesión es válida (token no nulo y rol USER_APP presente)
+    // Validar si la sesión es válida (token y refresh token no nulos, rol USER_APP presente)
     fun hasValidSession(): Boolean {
-        return !getToken().isNullOrEmpty() && hasUserAppRole()
+        return !getToken().isNullOrEmpty() && !getRefreshToken().isNullOrEmpty() && hasUserAppRole()
     }
 
     // Borrar sesión (Para el botón de Cerrar Sesión)

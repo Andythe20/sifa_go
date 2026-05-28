@@ -8,12 +8,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
+import com.sifa.sifa_go.core.network.NetworkModule
 import com.sifa.sifa_go.ui.navigation.AppNavigation
 import com.sifa.sifa_go.ui.theme.SIFA_GOTheme
 
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        NetworkModule.init(applicationContext)
         enableEdgeToEdge()
         setContent {
             SIFA_GOTheme {

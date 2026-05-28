@@ -31,15 +31,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     fun loadUserProfile() {
         val email = sessionManager.getUsername()
-        val token = sessionManager.getToken()
 
         if (email.isNullOrEmpty()) {
             error = "No se encontró el email del usuario"
-            return
-        }
-
-        if (token.isNullOrEmpty()) {
-            error = "No se encontró el token de sesión"
             return
         }
 
@@ -48,8 +42,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             error = null
 
             try {
-                val authToken = "Bearer $token"
-                val response = AuthRetrofitClient.apiService.getUserByEmail(authToken, email)
+                val response = AuthRetrofitClient.apiService.getUserByEmail(email)
 
                 if (response.isSuccessful) {
                     user = response.body()

@@ -61,7 +61,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sifa.sifa_go.viewmodel.CoreViewModel
 import com.sifa.sifa_go.viewmodel.SifaViewModel
 import com.sifa.sifa_go.core.utils.ImageUtils
-import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.core.network.GpsStatus
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
@@ -409,14 +408,11 @@ private fun TicketFormWithOverlay(
     onOverlayClosed: () -> Unit
 ) {
     val context = LocalContext.current
-    val sessionManager = remember { SessionManager(context) }
-    val authToken = sessionManager.getToken() ?: ""
 
     Box(modifier = Modifier.fillMaxSize()) {
         TicketScreen(
             vehicleData = coreViewModel.vehicleData!!,
             tiposInfraccion = coreViewModel.tiposInfraccion,
-            authToken = authToken,
             evidencePhotos = evidencePhotoPaths,
             latitude = sifaViewModel.latitude,
             longitude = sifaViewModel.longitude,

@@ -36,7 +36,6 @@ import java.io.File
 fun TicketScreen(
     vehicleData: PlateInfoResponse,
     tiposInfraccion: List<TipoInfraccionResponse> = emptyList(),
-    authToken: String = "",
     evidencePhotos: List<String>, // La foto que ya tomamos al escanear la patente
     latitude: Double?,
     longitude: Double?,
@@ -52,11 +51,11 @@ fun TicketScreen(
     var isLoading by remember { mutableStateOf(tiposInfraccion.isEmpty()) }
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(tiposInfraccion, authToken) {
-        if (tiposInfraccion.isEmpty() && authToken.isNotEmpty()) {
+    LaunchedEffect(tiposInfraccion) {
+        if (tiposInfraccion.isEmpty()) {
             isLoading = true
             try {
-                val response = CoreRetrofitClient.apiService.getAllTipoInfracciones("Bearer $authToken")
+                val response = CoreRetrofitClient.apiService.getAllTipoInfracciones()
                 if (response.isSuccessful) {
                     localTiposInfraccion = response.body()?.content ?: emptyList()
                 } else {
