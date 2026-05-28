@@ -435,7 +435,10 @@ private fun TicketFormWithOverlay(
                 )
                 coreViewModel.submitInfraccion(request, evidencePhotoPaths.toList())
             },
-            onAddPhotoClick = onAddPhotoClick
+            onAddPhotoClick = onAddPhotoClick,
+            onRemovePhoto = { path ->
+                sifaViewModel.removeEvidencePhoto(path)
+            }
         )
 
         if (isTakingEvidencePhoto) {

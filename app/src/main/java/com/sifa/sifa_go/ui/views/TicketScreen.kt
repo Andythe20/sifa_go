@@ -4,13 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.*
@@ -25,6 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.sifa.sifa_go.data.model.PlateInfoResponse
 import com.sifa.sifa_go.data.model.TipoInfraccionResponse
@@ -42,13 +44,15 @@ fun TicketScreen(
     isSubmitting: Boolean = false, // Estado que viene desde el ViewModel (bloquea la UI)
     onCancelClick: () -> Unit,
     onSubmitClick: (Int, String, Double?, Double?) -> Unit, // Pasa el ID de la infracción, observaciones y coordenadas
-    onAddPhotoClick: () -> Unit
+    onAddPhotoClick: () -> Unit,
+    onRemovePhoto: ((String) -> Unit)? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
     var selectedTipo by remember { mutableStateOf<TipoInfraccionResponse?>(null) }
     var observaciones by remember { mutableStateOf("") }
     var localTiposInfraccion by remember { mutableStateOf<List<TipoInfraccionResponse>>(tiposInfraccion) }
     var isLoading by remember { mutableStateOf(tiposInfraccion.isEmpty()) }
+    var fullscreenImagePath by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(tiposInfraccion) {
@@ -222,16 +226,35 @@ fun TicketScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Dibujamos cada foto real de la lista
-            items(evidencePhotos) { photoPath ->
-                AsyncImage(
-                    model = File(photoPath),
-                    contentDescription = "Evidencia",
-                    contentScale = ContentScale.Crop, // Corta la imagen para llenar el cuadrado
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.LightGray)
-                )
+            items(evidencePhotos.size) { index ->
+                val photoPath = evidencePhotos[index]
+                Box(modifier = Modifier.size(80.dp)) {
+                    AsyncImage(
+                        model = File(photoPath),
+                        contentDescription = "Evidencia",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.LightGray)
+                            .clickable { fullscreenImagePath = photoPath }
+                    )
+                    if (index > 0 && onRemovePhoto != null) {
+                        IconButton(
+                            onClick = { onRemovePhoto(photoPath) },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(20.dp)
+                        ) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Eliminar foto",
+                                tint = Color.Red,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
             }
 
             // El botón de agregar foto siempre al final
@@ -251,6 +274,29 @@ fun TicketScreen(
                             tint = if (isSubmitting) Color.Gray else MaterialTheme.colorScheme.primary
                         )
                     }
+                }
+            }
+        }
+
+        // Visor de pantalla completa
+        fullscreenImagePath?.let { path ->
+            Dialog(
+                onDismissRequest = { fullscreenImagePath = null },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
+                        .clickable { fullscreenImagePath = null },
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = File(path),
+                        contentDescription = "Foto evidencia",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
                 }
             }
         }
