@@ -1,19 +1,28 @@
 package com.sifa.sifa_go.ui.views
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.*
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
 import com.sifa.sifa_go.core.network.CoreRetrofitClient
 import kotlinx.coroutines.launch
@@ -53,6 +62,7 @@ fun TicketScreen(
     var localTiposInfraccion by remember { mutableStateOf<List<TipoInfraccionResponse>>(tiposInfraccion) }
     var isLoading by remember { mutableStateOf(tiposInfraccion.isEmpty()) }
     var fullscreenImagePath by remember { mutableStateOf<String?>(null) }
+    var removeConfirmIndex by remember { mutableIntStateOf(-1) }
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(tiposInfraccion) {
@@ -225,7 +235,6 @@ fun TicketScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Dibujamos cada foto real de la lista
             items(evidencePhotos.size) { index ->
                 val photoPath = evidencePhotos[index]
                 Box(modifier = Modifier.size(80.dp)) {
@@ -240,24 +249,26 @@ fun TicketScreen(
                             .clickable { fullscreenImagePath = photoPath }
                     )
                     if (index > 0 && onRemovePhoto != null) {
-                        IconButton(
-                            onClick = { onRemovePhoto(photoPath) },
+                        Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .size(20.dp)
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.55f))
+                                .clickable { removeConfirmIndex = index },
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Filled.Close,
                                 contentDescription = "Eliminar foto",
-                                tint = Color.Red,
-                                modifier = Modifier.size(16.dp)
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
                             )
                         }
                     }
                 }
             }
 
-            // El botón de agregar foto siempre al final
             item {
                 Box(
                     modifier = Modifier
@@ -278,27 +289,41 @@ fun TicketScreen(
             }
         }
 
-        // Visor de pantalla completa
-        fullscreenImagePath?.let { path ->
-            Dialog(
-                onDismissRequest = { fullscreenImagePath = null },
-                properties = DialogProperties(usePlatformDefaultWidth = false)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black)
-                        .clickable { fullscreenImagePath = null },
-                    contentAlignment = Alignment.Center
-                ) {
-                    AsyncImage(
-                        model = File(path),
-                        contentDescription = "Foto evidencia",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
+        // Visor de pantalla completa con carrusel
+        fullscreenImagePath?.let { _ ->
+            val initialPage = evidencePhotos.indexOf(fullscreenImagePath).coerceAtLeast(0)
+            FullScreenPhotoViewer(
+                photos = evidencePhotos,
+                initialPage = initialPage,
+                onDismiss = { fullscreenImagePath = null },
+                onRemoveRequest = { index ->
+                    removeConfirmIndex = index
                 }
-            }
+            )
+        }
+
+        // Diálogo de confirmación para eliminar foto
+        if (removeConfirmIndex in evidencePhotos.indices) {
+            AlertDialog(
+                onDismissRequest = { removeConfirmIndex = -1 },
+                title = { Text("Eliminar foto") },
+                text = { Text("¿Estás seguro de eliminar esta foto de respaldo?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        if (removeConfirmIndex in evidencePhotos.indices) {
+                            onRemovePhoto?.invoke(evidencePhotos[removeConfirmIndex])
+                        }
+                        removeConfirmIndex = -1
+                    }) {
+                        Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { removeConfirmIndex = -1 }) {
+                        Text("Cancelar")
+                    }
+                }
+            )
         }
 
         Spacer(modifier = Modifier.height(40.dp))
@@ -339,6 +364,147 @@ fun TicketScreen(
                 .height(50.dp)
         ) {
             Text("CANCELAR", color = if (isSubmitting) Color.Gray else MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+@Composable
+private fun FullScreenPhotoViewer(
+    photos: List<String>,
+    initialPage: Int,
+    onDismiss: () -> Unit,
+    onRemoveRequest: (Int) -> Unit
+) {
+    val pagerState = rememberPagerState(pageCount = { photos.size })
+    val scope = rememberCoroutineScope()
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    val dismissThreshold = 250f
+
+    LaunchedEffect(initialPage) {
+        pagerState.scrollToPage(initialPage)
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onVerticalDrag = { _, dragAmount ->
+                            dragOffsetY = (dragOffsetY + dragAmount).coerceAtLeast(0f)
+                        },
+                        onDragEnd = {
+                            if (dragOffsetY > dismissThreshold) {
+                                onDismiss()
+                            }
+                            dragOffsetY = 0f
+                        },
+                        onDragCancel = { dragOffsetY = 0f }
+                    )
+                }
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .offset { IntOffset(0, dragOffsetY.roundToInt()) }
+            ) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .systemBarsPadding()
+                ) { page ->
+                    AsyncImage(
+                        model = File(photos[page]),
+                        contentDescription = "Foto evidencia",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                // Close button — TopStart
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.5f))
+                ) {
+                    Icon(Icons.Filled.Close, contentDescription = "Cerrar", tint = Color.White)
+                }
+
+                // Delete button — TopEnd with same size/padding as close
+                if (pagerState.currentPage > 0) {
+                    IconButton(
+                        onClick = { onRemoveRequest(pagerState.currentPage) },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp)
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.5f))
+                    ) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = "Eliminar foto",
+                            tint = Color(0xFFEF5350)
+                        )
+                    }
+                }
+
+                // Thumbnail carousel
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.7f))
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(photos.size) { index ->
+                            val isCurrent = index == pagerState.currentPage
+                            Box(modifier = Modifier.size(48.dp)) {
+                                AsyncImage(
+                                    model = File(photos[index]),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .border(
+                                            width = if (isCurrent) 2.dp else 0.dp,
+                                            color = Color.White,
+                                            shape = RoundedCornerShape(4.dp)
+                                        )
+                                        .clickable {
+                                            scope.launch { pagerState.animateScrollToPage(index) }
+                                        }
+                                )
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = "${pagerState.currentPage + 1} / ${photos.size}",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(top = 8.dp)
+                    )
+                }
+            }
         }
     }
 }
