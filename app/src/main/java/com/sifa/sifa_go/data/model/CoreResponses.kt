@@ -1,6 +1,7 @@
 package com.sifa.sifa_go.data.model
 
 import com.google.gson.annotations.SerializedName
+import java.time.LocalDateTime
 
 data class PlateInfoResponse(
     val patente: String,
@@ -31,6 +32,7 @@ data class InfraccionCreateRequest(
     val patenteVehiculo: String,
     val idTipoInfraccion: Int,  // ID obtenido de la lista de tipos de infracción
     val observaciones: String?,
+    val fechaCitacion: String?
 )
 
 /*
