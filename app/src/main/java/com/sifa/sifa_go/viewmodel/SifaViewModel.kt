@@ -64,6 +64,11 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
     var infractionsHistory by mutableStateOf<List<InfraccionHistoryItem>>(emptyList())
     var historyLoading by mutableStateOf(false)
     var historyError by mutableStateOf<String?>(null)
+    var currentPage by mutableIntStateOf(0)
+    var totalPages by mutableIntStateOf(0)
+    var totalElements by mutableIntStateOf(0)
+    var isFirstPage by mutableStateOf(true)
+    var isLastPage by mutableStateOf(true)
 
     fun removeEvidencePhoto(path: String) {
         com.sifa.sifa_go.core.utils.ImageUtils.deleteImageFile(path)
@@ -191,7 +196,7 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Función para cargar el historial de infracciones desde el backend
-    fun loadInfractionsHistory(date: String) {
+    fun loadInfractionsHistory(date: String, page: Int = 0) {
         viewModelScope.launch {
 
             historyLoading = true
@@ -202,16 +207,20 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
                 val response = CoreRetrofitClient.apiService.getInfractionsHistory(
                     startDate = date,
                     endDate = date,
-                    user = user
+                    user = user,
+                    page = page,
+                    size = 10
                 )
 
                 if (response.isSuccessful) {
-                    // Extraemos el cuerpo de la respuesta
                     val pageResponse = response.body()
 
-                    // Si por alguna razón la respuesta completa o el content vienen nulos,
-                    // usamos el operador elvis (?:) para asignar una lista vacía segura.
                     infractionsHistory = pageResponse?.content ?: emptyList()
+                    currentPage = pageResponse?.pageNumber ?: 0
+                    totalPages = pageResponse?.totalPages ?: 0
+                    totalElements = pageResponse?.totalElements ?: 0
+                    isFirstPage = pageResponse?.isFirst ?: true
+                    isLastPage = pageResponse?.isLast ?: true
                 } else {
                     historyError = "Error del servidor: ${response.code()}"
                 }

@@ -37,6 +37,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.sifa.sifa_go.data.model.InfraccionHistoryItem
+import com.sifa.sifa_go.ui.components.PaginationBar
 import com.sifa.sifa_go.viewmodel.SifaViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -76,14 +77,48 @@ fun HistoryScreen(
                 .padding(20.dp)
         )
 
-        Text(
-            text = "Fecha: $today",
-            color = Color.Gray,
-            fontSize = 14.sp,
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-        )
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Fecha: $today",
+                color = Color.Gray,
+                fontSize = 14.sp
+            )
+
+            if (!sifaViewModel.historyLoading && sifaViewModel.infractionsHistory.isNotEmpty()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Total: ${sifaViewModel.totalElements}",
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
+                    if (sifaViewModel.totalPages > 1) {
+                        Text(
+                            text = "  |  ",
+                            color = Color.Gray.copy(alpha = 0.5f),
+                            fontSize = 12.sp
+                        )
+                        PaginationBar(
+                            currentPage = sifaViewModel.currentPage + 1,
+                            totalPages = sifaViewModel.totalPages,
+                            isFirstPage = sifaViewModel.isFirstPage,
+                            isLastPage = sifaViewModel.isLastPage,
+                            onPreviousPage = {
+                                sifaViewModel.loadInfractionsHistory(today, sifaViewModel.currentPage - 1)
+                            },
+                            onNextPage = {
+                                sifaViewModel.loadInfractionsHistory(today, sifaViewModel.currentPage + 1)
+                            }
+                        )
+                    }
+                }
+            }
+        }
 
 Spacer(modifier = Modifier.height(16.dp))
 
