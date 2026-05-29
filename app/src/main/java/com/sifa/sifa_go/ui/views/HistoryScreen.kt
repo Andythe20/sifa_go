@@ -4,7 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,6 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,6 +43,7 @@ import com.sifa.sifa_go.ui.components.PaginationBar
 import com.sifa.sifa_go.viewmodel.SifaViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import kotlin.math.roundToInt
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -521,6 +524,14 @@ fun ImageViewerDialog(
         currentIndex = pagerState.currentPage
     }
 
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+
+    val backgroundAlpha by remember {
+        derivedStateOf {
+            (0.95f - (dragOffsetY / 600f).coerceIn(0f, 0.95f))
+        }
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -528,132 +539,154 @@ fun ImageViewerDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.95f))
+                .background(Color.Black.copy(alpha = backgroundAlpha))
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onVerticalDrag = { change, dragAmount ->
+                            change.consume()
+                            dragOffsetY = (dragOffsetY + dragAmount).coerceAtLeast(0f)
+                        },
+                        onDragEnd = {
+                            if (dragOffsetY > 200f) {
+                                onDismiss()
+                            } else {
+                                dragOffsetY = 0f
+                            }
+                        },
+                        onDragCancel = { dragOffsetY = 0f }
+                    )
+                }
         ) {
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize()
-            ) { page ->
-                SubcomposeAsyncImage(
-                    model = images[page],
-                    contentDescription = "Imagen ${page + 1}",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize(),
-                    loading = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(48.dp),
-                                strokeWidth = 4.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(0, dragOffsetY.roundToInt()) }
+                    .fillMaxSize()
+            ) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { page ->
+                    SubcomposeAsyncImage(
+                        model = images[page],
+                        contentDescription = "Imagen ${page + 1}",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                        loading = {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(48.dp),
+                                    strokeWidth = 4.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        },
+                        error = {
+                            Box(
+                                modifier = Modifier.fillMaxSize().background(Color.Black),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = "Error al cargar",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
                         }
-                    },
-                    error = {
-                        Box(
-                            modifier = Modifier.fillMaxSize().background(Color.Black),
-                            contentAlignment = Alignment.Center
+                    )
+                }
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .statusBarsPadding()
+                ) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = "Cerrar",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+
+                if (images.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.Center)
+                            .padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = {
+                                val newPage = if (pagerState.currentPage > 0) {
+                                    pagerState.currentPage - 1
+                                } else {
+                                    images.size - 1
+                                }
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(newPage)
+                                }
+                            },
+                            modifier = Modifier
+                                .background(statusColor.copy(alpha = 0.3f), RoundedCornerShape(50))
                         ) {
                             Icon(
-                                Icons.Filled.Close,
-                                contentDescription = "Error al cargar",
-                                tint = Color.Gray,
-                                modifier = Modifier.size(48.dp)
+                                Icons.Filled.ChevronLeft,
+                                contentDescription = "Anterior",
+                                tint = Color.White,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        IconButton(
+                            onClick = {
+                                val newPage = if (pagerState.currentPage < images.size - 1) {
+                                    pagerState.currentPage + 1
+                                } else {
+                                    0
+                                }
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(newPage)
+                                }
+                            },
+                            modifier = Modifier
+                                .background(statusColor.copy(alpha = 0.3f), RoundedCornerShape(50))
+                        ) {
+                            Icon(
+                                Icons.Filled.ChevronRight,
+                                contentDescription = "Siguiente",
+                                tint = Color.White,
+                                modifier = Modifier.size(40.dp)
                             )
                         }
                     }
-                )
-            }
-
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .statusBarsPadding()
-            ) {
-                Icon(
-                    Icons.Filled.Close,
-                    contentDescription = "Cerrar",
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-
-            if (images.size > 1) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.Center)
-                        .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = {
-                            val newPage = if (pagerState.currentPage > 0) {
-                                pagerState.currentPage - 1
-                            } else {
-                                images.size - 1
-                            }
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(newPage)
-                            }
-                        },
-                        modifier = Modifier
-                            .background(statusColor.copy(alpha = 0.3f), RoundedCornerShape(50))
-                    ) {
-                        Icon(
-                            Icons.Filled.ChevronLeft,
-                            contentDescription = "Anterior",
-                            tint = Color.White,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    IconButton(
-                        onClick = {
-                            val newPage = if (pagerState.currentPage < images.size - 1) {
-                                pagerState.currentPage + 1
-                            } else {
-                                0
-                            }
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(newPage)
-                            }
-                        },
-                        modifier = Modifier
-                            .background(statusColor.copy(alpha = 0.3f), RoundedCornerShape(50))
-                    ) {
-                        Icon(
-                            Icons.Filled.ChevronRight,
-                            contentDescription = "Siguiente",
-                            tint = Color.White,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
                 }
-            }
 
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 32.dp)
-                    .navigationBarsPadding(),
-                shape = RoundedCornerShape(20.dp),
-                color = statusColor.copy(alpha = 0.9f)
-            ) {
-                Text(
-                    text = "${currentIndex + 1} / ${images.size}",
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 32.dp)
+                        .navigationBarsPadding(),
+                    shape = RoundedCornerShape(20.dp),
+                    color = statusColor.copy(alpha = 0.9f)
+                ) {
+                    Text(
+                        text = "${currentIndex + 1} / ${images.size}",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
             }
         }
     }
