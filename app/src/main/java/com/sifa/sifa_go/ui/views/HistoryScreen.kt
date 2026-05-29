@@ -1,6 +1,8 @@
 package com.sifa.sifa_go.ui.views
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -197,13 +199,54 @@ Spacer(modifier = Modifier.height(16.dp))
                 }
 
                 else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(sifaViewModel.infractionsHistory) { infraction ->
-                            InfractionHistoryCard(infraction = infraction)
+                    if (sifaViewModel.totalPages > 1) {
+                        val pagerState = rememberPagerState(
+                            initialPage = sifaViewModel.currentPage,
+                            pageCount = { sifaViewModel.totalPages }
+                        )
+                        val pagerScope = rememberCoroutineScope()
+
+                        LaunchedEffect(pagerState.currentPage) {
+                            if (pagerState.currentPage != sifaViewModel.currentPage) {
+                                sifaViewModel.loadInfractionsHistory(today, pagerState.currentPage)
+                            }
+                        }
+
+                        LaunchedEffect(sifaViewModel.currentPage) {
+                            if (sifaViewModel.currentPage != pagerState.currentPage) {
+                                pagerScope.launch {
+                                    pagerState.animateScrollToPage(sifaViewModel.currentPage)
+                                }
+                            }
+                        }
+
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize()
+                        ) { _ ->
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(sifaViewModel.infractionsHistory, key = { it.id ?: it.hashCode() }) { infraction ->
+                                    AnimatedCardEntry {
+                                        InfractionHistoryCard(infraction = infraction)
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(sifaViewModel.infractionsHistory, key = { it.id ?: it.hashCode() }) { infraction ->
+                                AnimatedCardEntry {
+                                    InfractionHistoryCard(infraction = infraction)
+                                }
+                            }
                         }
                     }
                 }
@@ -492,6 +535,30 @@ fun InfractionHistoryCard(infraction: InfraccionHistoryItem) {
             }
 
         }
+    }
+}
+
+@Composable
+private fun AnimatedCardEntry(content: @Composable () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(250),
+        label = "cardAlpha"
+    )
+    val offsetY by animateDpAsState(
+        targetValue = if (visible) 0.dp else 20.dp,
+        animationSpec = tween(250)
+    )
+    LaunchedEffect(Unit) { visible = true }
+    Box(
+        modifier = Modifier
+            .graphicsLayer {
+                this.alpha = alpha
+                this.translationY = offsetY.toPx()
+            }
+    ) {
+        content()
     }
 }
 
