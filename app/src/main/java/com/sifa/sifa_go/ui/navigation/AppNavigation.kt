@@ -182,6 +182,7 @@ fun MainAppNavigation(
 
     MainLayout(
         title = "SIFA GO",
+        username = sifaViewModel.currentUsername,
         currentRoute = currentRoute,
         onNavigate = { route ->
             tabsNavController.navigate(route) {

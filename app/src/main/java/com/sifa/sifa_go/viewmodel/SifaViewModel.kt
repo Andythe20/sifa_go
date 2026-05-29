@@ -60,6 +60,9 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
     // Contador para los logs de calibración
     var gpsAttemptCount by mutableIntStateOf(0)
 
+    // Nombre del usuario logueado
+    var currentUsername by mutableStateOf(sessionManager.getUsername() ?: "")
+
     // Variables para el historial de infracciones (incluye paginacion)
     var infractionsHistory by mutableStateOf<List<InfraccionHistoryItem>>(emptyList())
     var historyLoading by mutableStateOf(false)
