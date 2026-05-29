@@ -133,6 +133,7 @@ fun AppNavigation() {
 
                 // Llamamos a la función que contiene el MainLayout y el segundo enrutador
                 MainAppNavigation(
+                    presenceViewModel = presenceViewModel,
                     gpsStatus = gpsStatus.value,
                     onLogout = {
                         presenceViewModel.stopHeartbeatEngine()
@@ -164,6 +165,7 @@ fun AppNavigation() {
 
 @Composable
 fun MainAppNavigation(
+    presenceViewModel: PresenceViewModel,
     sifaViewModel: SifaViewModel = viewModel(),
     gpsStatus: GpsStatus = GpsStatus.Available,
     onLogout: () -> Unit
@@ -181,6 +183,7 @@ fun MainAppNavigation(
     val cameraController = remember { LifecycleCameraController(context) }
 
     MainLayout(
+        presenceViewModel = presenceViewModel,
         title = "SIFA GO",
         username = sifaViewModel.currentUsername,
         currentRoute = currentRoute,

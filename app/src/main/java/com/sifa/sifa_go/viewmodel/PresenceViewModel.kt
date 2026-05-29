@@ -9,6 +9,9 @@ import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.FiscalizadorHeartbeatRequest
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class PresenceViewModel : ViewModel() {
@@ -16,6 +19,9 @@ class PresenceViewModel : ViewModel() {
     // variables para el envio de la actividad del fiscalizador
     private var heartbeatJob: Job? = null
     private val HEARTBEAT_INTERVAL_MS = 3 * 60 * 1000L // 3 minutos
+
+    private val _heartbeatTrigger = MutableStateFlow(0L)
+    val heartbeatTrigger: StateFlow<Long> = _heartbeatTrigger.asStateFlow()
 
     /**
      * Inicia el motor de latidos. Recibe sus dependencias por parámetro.
@@ -40,6 +46,7 @@ class PresenceViewModel : ViewModel() {
                                     request = request
                                 )
                                 if (response.isSuccessful) {
+                                    _heartbeatTrigger.value = System.currentTimeMillis()
                                     println("Latido enviado exitosamente: Lat ${location.latitude}, Lng ${location.longitude}")
                                 }
                             } catch (e: Exception) {

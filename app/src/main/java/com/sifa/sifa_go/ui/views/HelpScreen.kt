@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Card
@@ -95,6 +96,17 @@ fun HelpScreen(
                 },
                 title = "Tomar fotografías",
                 description = "Usa la cámara principal para capturar evidencia. Verifica que la imagen esté enfocada antes de enviarla."
+            )
+
+            HelpCard(
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.GpsFixed,
+                        contentDescription = null
+                    )
+                },
+                title = "Ubicación GPS",
+                description = "La aplicación obtiene automáticamente tu ubicación para asociarla a cada infracción. Asegúrate de tener el GPS activado."
             )
 
             HelpCard(
