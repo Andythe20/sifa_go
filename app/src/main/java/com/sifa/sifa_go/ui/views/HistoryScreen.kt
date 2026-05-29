@@ -81,7 +81,7 @@ fun HistoryScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         Text(
-            text = "HISTORIAL DE INFRACCIONES",
+            text = "INFRACCIONES EMITIDAS",
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
