@@ -58,7 +58,9 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sifa.sifa_go.R
+import com.sifa.sifa_go.core.utils.getAppVersionInfo
 import com.sifa.sifa_go.viewmodel.AuthViewModel
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun LoginScreen(
@@ -256,6 +258,16 @@ fun LoginScreen(
                 } else {
                     Text("INGRESAR", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
+            }
+
+            val appInfo = getAppVersionInfo(LocalContext.current)
+            Box(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                Text(
+                    text = "v${appInfo.versionName} (build ${appInfo.versionCode})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray.copy(alpha = 0.5f),
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                )
             }
 
         }

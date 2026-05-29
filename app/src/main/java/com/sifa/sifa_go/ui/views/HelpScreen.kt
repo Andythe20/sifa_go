@@ -33,9 +33,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sifa.sifa_go.core.utils.getAppVersionInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,8 +130,9 @@ fun HelpScreen(
                 description = "Si la aplicación no responde, verifica tu conexión a internet o reinicia la sesión desde Perfil."
             )
 
+            val appInfo = getAppVersionInfo(LocalContext.current)
             Text(
-                text = "Versión 1.0.0",
+                text = "v${appInfo.versionName} (build ${appInfo.versionCode})",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
