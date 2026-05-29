@@ -19,15 +19,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Barra de paginación reutilizable con botones Anterior/Siguiente
- * en forma de iconos y texto de página actual.
+ * Barra de paginacion con iconos de anterior/siguiente e indicador de pagina actual.
+ * Solo se renderiza cuando hay mas de una pagina.
  *
- * @param currentPage Número de página actual (1-indexado para mostrar al usuario)
- * @param totalPages Número total de páginas
- * @param isFirstPage Indica si está en la primera página (deshabilita botón "Anterior")
- * @param isLastPage Indica si está en la última página (deshabilita botón "Siguiente")
- * @param onPreviousPage Callback al presionar "Anterior"
- * @param onNextPage Callback al presionar "Siguiente"
+ * @param currentPage pagina actual (1-indexado para mostrar al usuario)
+ * @param totalPages total de paginas
+ * @param isFirstPage true si esta en la primera pagina
+ * @param isLastPage true si esta en la ultima pagina
+ * @param onPreviousPage callback al presionar anterior
+ * @param onNextPage callback al presionar siguiente
  */
 @Composable
 fun PaginationBar(

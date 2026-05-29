@@ -60,7 +60,7 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
     // Contador para los logs de calibración
     var gpsAttemptCount by mutableIntStateOf(0)
 
-    // Variables para el historial de infracciones
+    // Variables para el historial de infracciones (incluye paginacion)
     var infractionsHistory by mutableStateOf<List<InfraccionHistoryItem>>(emptyList())
     var historyLoading by mutableStateOf(false)
     var historyError by mutableStateOf<String?>(null)
@@ -195,7 +195,14 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Función para cargar el historial de infracciones desde el backend
+    /**
+     * Carga el historial de infracciones paginado desde el backend.
+     * Actualiza [infractionsHistory], [currentPage], [totalPages], [totalElements],
+     * [isFirstPage] e [isLastPage] segun la respuesta.
+     *
+     * @param date filtro por fecha (YYYY-MM-DD)
+     * @param page numero de pagina a solicitar (0-indexado, default 0)
+     */
     fun loadInfractionsHistory(date: String, page: Int = 0) {
         viewModelScope.launch {
 

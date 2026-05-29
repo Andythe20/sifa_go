@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.sifa.sifa_go.data.model.InfraccionHistoryItem
 import com.sifa.sifa_go.ui.components.PaginationBar
 import com.sifa.sifa_go.viewmodel.SifaViewModel
@@ -407,6 +407,11 @@ private fun formatTimestamp(timestamp: String): String {
     }
 }
 
+/**
+ * Galeria de miniaturas de evidencia. Muestra hasta 3 imagenes en fila,
+ * con overlay "+N" si hay mas. Al hacer clic abre [ImageViewerDialog].
+ * Cada miniatura muestra un spinner mientras se descarga.
+ */
 @Composable
 fun ImageGallery(
     images: List<String>,
@@ -427,11 +432,36 @@ fun ImageGallery(
                     .clickable { selectedImageIndex = index }
                     .background(Color.LightGray)
             ) {
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = imageUrl,
                     contentDescription = "Evidencia ${index + 1}",
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    loading = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
+                    error = {
+                        Box(
+                            modifier = Modifier.fillMaxSize().background(Color.LightGray),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Error al cargar",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                 )
                 if (images.size > 3 && index == 2) {
                     Box(
@@ -467,6 +497,11 @@ fun ImageGallery(
     }
 }
 
+/**
+ * Dialogo a pantalla completa para visualizar imagenes de evidencia
+ * con navegacion entre ellas y cierre. Muestra un spinner en cada
+ * imagen mientras se descarga.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ImageViewerDialog(
@@ -499,11 +534,36 @@ fun ImageViewerDialog(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = images[page],
                     contentDescription = "Imagen ${page + 1}",
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    loading = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp),
+                                strokeWidth = 4.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
+                    error = {
+                        Box(
+                            modifier = Modifier.fillMaxSize().background(Color.Black),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Error al cargar",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
+                    }
                 )
             }
 
