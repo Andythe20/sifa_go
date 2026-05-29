@@ -68,7 +68,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 loginError = NetworkErrorHandler.getExceptionMessage(e)
             } finally {
-                isLoading = false
+                if (loginError != null) isLoading = false
             }
         }
     }
