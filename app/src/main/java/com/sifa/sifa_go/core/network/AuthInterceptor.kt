@@ -19,7 +19,7 @@ class AuthInterceptor(
 
     private companion object {
         private const val TAG = "AuthInterceptor"
-        private const val AUTH_BASE_URL = "http://44.196.188.33"
+        private const val AUTH_BASE_URL = "http://192.168.100.56:9000"
         private const val CONTENT_TYPE_JSON = "application/json"
         private const val EXPIRY_MARGIN_MS = 30_000L
 
