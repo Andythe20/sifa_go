@@ -136,5 +136,14 @@ data class FiscalizadorHeartbeatRequest(
     val latitud: Double,
 
     @SerializedName("longitud")
-    val longitud: Double
+    val longitud: Double,
+
+    @SerializedName("deviceId")
+    val deviceId: String,
+
+    @SerializedName("marca")
+    val marca: String,
+
+    @SerializedName("modelo")
+    val modelo: String
 )
