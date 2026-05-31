@@ -26,7 +26,7 @@ interface AuthApiService {
 }
 
 object AuthRetrofitClient {
-    private const val BASE_URL = "http://192.168.100.56:9000"
+    private const val BASE_URL = "http://192.168.0.12:9000"
 
     val apiService: AuthApiService by lazy {
         Retrofit.Builder()
