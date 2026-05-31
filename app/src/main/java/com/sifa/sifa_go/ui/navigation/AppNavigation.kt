@@ -219,7 +219,9 @@ fun MainAppNavigation(
 
             composable("home") {
                 // Limpiamos los datos del proceso al entrar al inicio para evitar parpadeos visuales
+                // Añadimos un pequeño retraso para asegurar que la animación de salida de la cámara haya terminado
                 LaunchedEffect(Unit) {
+                    kotlinx.coroutines.delay(1000)
                     sifaViewModel.clearProcess()
                     coreViewModel.clearData()
                 }
