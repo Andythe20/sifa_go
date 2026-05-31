@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialogDefaults.containerColor
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -82,6 +83,7 @@ fun MainLayout(
     val bottomNavItems = listOf(
         BottomNavItem("Escanear", Icons.Filled.CameraAlt, "scan"),
         BottomNavItem("Historial", Icons.Filled.History, "history"),
+        BottomNavItem("Inicio", Icons.Filled.Home, "home"),
         BottomNavItem("Reportes", Icons.Filled.Assessment, "reports"),
         BottomNavItem("Perfil", Icons.Filled.Person, "profile")
     )
@@ -178,8 +180,9 @@ fun MainLayout(
                 bottomNavItems.forEach { item ->
                     NavigationBarItem(
                         icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title) },
+                        label = { Text(item.title, maxLines = 1) },
                         selected = currentRoute == item.route,
+                        alwaysShowLabel = currentRoute == item.route, // Solo muestra texto si está seleccionado, liberando mucho espacio visual.
                         onClick = { onNavigate(item.route) }
                     )
                 }

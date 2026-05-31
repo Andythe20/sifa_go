@@ -81,7 +81,6 @@ import androidx.core.app.ActivityCompat
 import com.google.accompanist.permissions.MultiplePermissionsState
 
 
-// Vista de camara y permisos
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun CameraScreen(
@@ -89,6 +88,7 @@ fun CameraScreen(
     sifaViewModel: SifaViewModel = viewModel(), // Inyectamos el ViewModel
     coreViewModel: CoreViewModel = viewModel(),
     gpsStatus: GpsStatus = GpsStatus.Available,
+    currentRoute: String = "scan",
     onPhotoConfirmed: (String) -> Unit
 ) {
 
@@ -125,10 +125,11 @@ fun CameraScreen(
 
     // Verificamos si hay algún proceso activo delegando a las vistas y al ViewModel
     val isShowingProcess = sifaViewModel.isLoading ||
-            sifaViewModel.detectedPlate != null ||
+            !sifaViewModel.detectedPlate.isNullOrEmpty() ||
             sifaViewModel.detectionError != null ||
             coreViewModel.vehicleData != null ||
-            uiState.capturedPhotoPath != null
+            uiState.capturedPhotoPath != null ||
+            sifaViewModel.isManualEntry
 
     // Interceptamos el botón físico "Atrás" del celular
     BackHandler(enabled = isShowingProcess) {
@@ -195,12 +196,15 @@ fun CameraScreen(
             )
         }
 
-        sifaViewModel.detectedPlate != null || sifaViewModel.detectionError != null -> {
+        sifaViewModel.isManualEntry || sifaViewModel.detectedPlate != null || sifaViewModel.detectionError != null -> {
             // VISTA DEL RESULTADO DE LA PATENTE
             PlateResultView(
                 sifaViewModel = sifaViewModel,
                 coreViewModel = coreViewModel,
-                onRestart = { uiState.capturedPhotoPath = null }
+                onRestart = {
+                    uiState.capturedPhotoPath = null
+                    sifaViewModel.isManualEntry = false // <-- APAGAMOS LA BANDERA AQUÍ
+                }
             )
         }
 
@@ -240,6 +244,12 @@ fun Camera(
     lifecycle: LifecycleOwner,
     modifier: Modifier = Modifier,
 ) {
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        cameraController.bindToLifecycle(lifecycle)
+        onDispose {
+            cameraController.unbind() // <-- ESTO EVITA QUE SE QUEDE PEGADA
+        }
+    }
 
     AndroidView(
         modifier = modifier,
@@ -249,6 +259,9 @@ fun Camera(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
+
+                implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+
                 // Solo le pasamos el controlador
                 controller = cameraController
 
@@ -500,6 +513,7 @@ private fun PlateResultView(
         initialPlate = sifaViewModel.detectedPlate,
         errorMessage = coreViewModel.errorMessage ?: sifaViewModel.detectionError,
         isLoading = coreViewModel.isLoading,
+        isManualEntry = sifaViewModel.isManualEntry,
         onConsultClick = { finalPlate ->
             sifaViewModel.detectedPlate = finalPlate
             sifaViewModel.detectionError = null

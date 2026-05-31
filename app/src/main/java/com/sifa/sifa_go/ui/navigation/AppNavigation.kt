@@ -38,6 +38,7 @@ import com.sifa.sifa_go.R
 import com.sifa.sifa_go.ui.views.CreditsScreen
 import com.sifa.sifa_go.ui.views.HelpScreen
 import com.sifa.sifa_go.ui.views.HistoryScreen
+import com.sifa.sifa_go.ui.views.HomeScreen
 import com.sifa.sifa_go.ui.views.ProfileScreen
 import com.sifa.sifa_go.viewmodel.CoreViewModel
 import com.sifa.sifa_go.viewmodel.PresenceViewModel
@@ -167,6 +168,7 @@ fun AppNavigation() {
 fun MainAppNavigation(
     presenceViewModel: PresenceViewModel,
     sifaViewModel: SifaViewModel = viewModel(),
+    coreViewModel: CoreViewModel = viewModel(),
     gpsStatus: GpsStatus = GpsStatus.Available,
     onLogout: () -> Unit
 ) {
@@ -175,7 +177,7 @@ fun MainAppNavigation(
 
     // Obtenemos la ruta actual para pintar de azul el ícono correcto en el footer
     val navBackStackEntry by tabsNavController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route ?: "scan"
+    val currentRoute = navBackStackEntry?.destination?.route ?: "home"
 
     // La cámara se crea aquí.
     // Como estamos dentro de MainAppNavigation, la cámara sobrevivirá aunque pases al Historial y vuelvas.
@@ -188,11 +190,24 @@ fun MainAppNavigation(
         username = sifaViewModel.currentUsername,
         currentRoute = currentRoute,
         onNavigate = { route ->
+
+            if (currentRoute == route) {
+                if (route == "scan") {
+                    sifaViewModel.clearProcess()
+                    coreViewModel.clearData()
+                }
+                return@MainLayout
+            }
+
+            if (route == "scan" || route == "home") {
+                sifaViewModel.clearProcess()
+                coreViewModel.clearData()
+            }
+
             tabsNavController.navigate(route) {
-                // Evita crear un historial infinito al tocar los botones del menú
-                popUpTo(tabsNavController.graph.startDestinationId) { saveState = true }
+                // Navegación limpia para evitar "atascamiento" de estados previos
+                popUpTo("home") { inclusive = false }
                 launchSingleTop = true
-                restoreState = true
             }
         },
         onBackClick = { tabsNavController.popBackStack() },
@@ -202,15 +217,36 @@ fun MainAppNavigation(
         // El NavHost interno que dibuja las vistas respetando los márgenes del MainLayout
         NavHost(
             navController = tabsNavController,
-            startDestination = "scan",
+            startDestination = "home",
             modifier = Modifier.padding(paddingValues)
         ) {
+
+            composable("home") {
+                HomeScreen(
+                    username = sifaViewModel.currentUsername,
+                    sifaViewModel = sifaViewModel,
+                    onStartCamera = {
+                        sifaViewModel.clearProcess()
+                        coreViewModel.clearData()
+                        tabsNavController.navigate("scan") { launchSingleTop = true }
+                    },
+                    onStartManual = {
+                        sifaViewModel.clearProcess()
+                        coreViewModel.clearData()
+                        sifaViewModel.isManualEntry = true
+                        sifaViewModel.detectedPlate = "" // Limpiamos residuos
+                        tabsNavController.navigate("scan") { launchSingleTop = true }
+                    }
+                )
+            }
 
             composable("scan") {
                 CameraScreen(
                     cameraController = cameraController, // Pasamos el controlador seguro
                     sifaViewModel = sifaViewModel,
+                    coreViewModel = coreViewModel,
                     gpsStatus = gpsStatus,
+                    currentRoute = currentRoute,
                     onPhotoConfirmed = { pathToUpload ->
                         sifaViewModel.currentPhotoPath = pathToUpload
                         println("Enviando foto al backend: $pathToUpload")
