@@ -199,11 +199,7 @@ fun MainAppNavigation(
                 return@MainLayout
             }
 
-            if (route == "scan" || route == "home") {
-                sifaViewModel.clearProcess()
-                coreViewModel.clearData()
-            }
-
+            // Primero navegamos para que el NavHost empiece el cambio de vista
             tabsNavController.navigate(route) {
                 // Navegación limpia para evitar "atascamiento" de estados previos
                 popUpTo("home") { inclusive = false }
@@ -222,6 +218,12 @@ fun MainAppNavigation(
         ) {
 
             composable("home") {
+                // Limpiamos los datos del proceso al entrar al inicio para evitar parpadeos visuales
+                LaunchedEffect(Unit) {
+                    sifaViewModel.clearProcess()
+                    coreViewModel.clearData()
+                }
+
                 HomeScreen(
                     username = sifaViewModel.currentUsername,
                     sifaViewModel = sifaViewModel,
