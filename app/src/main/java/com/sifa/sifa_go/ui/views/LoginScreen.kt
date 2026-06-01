@@ -61,6 +61,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sifa.sifa_go.R
 import com.sifa.sifa_go.core.utils.getAppVersionInfo
+import com.sifa.sifa_go.core.utils.vibrateShort
 import com.sifa.sifa_go.viewmodel.AuthViewModel
 import androidx.compose.ui.platform.LocalContext
 
@@ -86,9 +87,12 @@ fun LoginScreen(
     // Estado para controlar el menú desplegable
     var menuExpanded by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+
     // Observamos si el login fue exitoso para navegar
     LaunchedEffect(authViewModel.isLoginSuccessful) {
         if (authViewModel.isLoginSuccessful) {
+            context.vibrateShort()
             onLoginSuccess()
         }
     }

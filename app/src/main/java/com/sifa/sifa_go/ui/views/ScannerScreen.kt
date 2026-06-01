@@ -66,6 +66,7 @@ import com.sifa.sifa_go.viewmodel.CoreViewModel
 import com.sifa.sifa_go.viewmodel.SifaViewModel
 import com.sifa.sifa_go.core.utils.ImageUtils
 import com.sifa.sifa_go.core.network.GpsStatus
+import com.sifa.sifa_go.core.utils.vibrateShort
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import java.io.File
@@ -470,6 +471,7 @@ private fun TicketFormWithOverlay(
                 }
                 ExtendedFloatingActionButton(
                     onClick = {
+                        context.vibrateShort()
                         takePicture(cameraController, context, mainExecutor) { path ->
                             evidencePhotoPaths.add(path)
                             onOverlayClosed()
@@ -564,6 +566,7 @@ private fun LiveCameraView(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
+                    context.vibrateShort()
                     val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
                     sifaViewModel.captureTime = java.time.LocalDateTime.now().format(formatter)
                     takePicture(cameraController, context, mainExecutor) { path ->

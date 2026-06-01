@@ -19,19 +19,12 @@ import android.os.Build
 
 class PresenceViewModel : ViewModel() {
 
-    // variables para el envio de la actividad del fiscalizador
     private var heartbeatJob: Job? = null
-    private val HEARTBEAT_INTERVAL_MS = 3 * 60 * 1000L // 3 minutos
-
-    // Válvula de tiempo para bloquear los rebotes de la calibración GPS
-    private var lastSentTime = 0L
+    private val HEARTBEAT_INTERVAL_MS = 3 * 60 * 1000L
 
     private val _heartbeatTrigger = MutableStateFlow(0L)
     val heartbeatTrigger: StateFlow<Long> = _heartbeatTrigger.asStateFlow()
 
-    /**
-     * Inicia el motor de latidos. Recibe sus dependencias por parámetro.
-     */
     @SuppressLint("HardwareIds")
     fun startHeartbeatEngine(context: Context, sessionManager: SessionManager) {
         if (heartbeatJob?.isActive == true) return
@@ -42,64 +35,56 @@ class PresenceViewModel : ViewModel() {
         val locationHelper = LocationHelper(context)
 
         heartbeatJob = viewModelScope.launch {
+            // Enviar latido inmediatamente al iniciar
+            sendHeartbeat(locationHelper, sessionManager, deviceId, brand, model)
+
+            // Luego repetir cada 3 minutos
             while (true) {
-                try {
-                    if (sessionManager.getToken() != null) {
-                        locationHelper.startPrecisionCalibration { location ->
-                            val currentTime = System.currentTimeMillis()
-
-                            if (currentTime - lastSentTime > 150000L) {
-
-                                // se actualiza la valvula
-                                lastSentTime = currentTime
-
-                                val request = FiscalizadorHeartbeatRequest(
-                                    latitud = location.latitude,
-                                    longitud = location.longitude,
-                                    deviceId = deviceId,
-                                    marca = brand,
-                                    modelo = model,
-                                )
-
-                                viewModelScope.launch {
-                                    try {
-                                        val response = CoreRetrofitClient.apiService.sendHeartbeat(
-                                            request = request
-                                        )
-                                        if (response.isSuccessful) {
-                                            _heartbeatTrigger.value = System.currentTimeMillis()
-                                            println("Latido enviado exitosamente: Lat ${location.latitude}, Lng ${location.longitude}")
-                                        }
-                                    } catch (e: Exception) {
-                                        println("SIFA GO - Error enviando latido: ${e.message}")
-                                        // Si hay error de red, abrimos la válvula para que el intento 2/5 pueda probar suerte
-                                        lastSentTime = 0L
-                                    }
-                                }
-                            } else {
-                                println("SIFA GO - Coordenada GPS de calibración descartada (Válvula de 3 min activa)")
-                            }
-
-
-                        }
-                    }
-                } catch (e: Exception) {
-                    println("SIFA GO - Esperando permisos de GPS del usuario...")
-                }
-
-
                 delay(HEARTBEAT_INTERVAL_MS)
+                sendHeartbeat(locationHelper, sessionManager, deviceId, brand, model)
             }
         }
     }
 
-    /**
-     * Detiene el motor de latidos de forma segura.
-     */
+    private suspend fun sendHeartbeat(
+        locationHelper: LocationHelper,
+        sessionManager: SessionManager,
+        deviceId: String,
+        brand: String,
+        model: String
+    ) {
+        try {
+            if (sessionManager.getToken() == null) return
+
+            val location = locationHelper.getLocation()
+            if (location == null) {
+                println("SIFA GO - No se pudo obtener ubicación para el latido")
+                return
+            }
+
+            val request = FiscalizadorHeartbeatRequest(
+                latitud = location.latitude,
+                longitud = location.longitude,
+                deviceId = deviceId,
+                marca = brand,
+                modelo = model,
+            )
+
+            val response = CoreRetrofitClient.apiService.sendHeartbeat(request = request)
+            if (response.isSuccessful) {
+                _heartbeatTrigger.value = System.currentTimeMillis()
+                println("Latido enviado exitosamente: Lat ${location.latitude}, Lng ${location.longitude}")
+            } else {
+                println("SIFA GO - Error enviando latido: HTTP ${response.code()}")
+            }
+        } catch (e: Exception) {
+            println("SIFA GO - Error enviando latido: ${e.message}")
+        }
+    }
+
     fun stopHeartbeatEngine() {
         heartbeatJob?.cancel()
         heartbeatJob = null
-        lastSentTime = 0L // Reseteamos la válvula al apagar
         println("Motor de latidos detenido.")
     }
 }

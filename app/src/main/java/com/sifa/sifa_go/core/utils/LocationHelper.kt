@@ -8,12 +8,32 @@ import android.os.Build
 import android.os.Looper
 import android.util.Log
 import com.google.android.gms.location.*
+import com.google.android.gms.tasks.Tasks
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.Locale
+import kotlin.coroutines.resume
 
 class LocationHelper(private val context: Context) {
 
     private val fusedLocationClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
+
+    @android.annotation.SuppressLint("MissingPermission")
+    suspend fun getLocation(): Location? = suspendCancellableCoroutine { continuation ->
+        try {
+            val task = fusedLocationClient.getCurrentLocation(
+                Priority.PRIORITY_HIGH_ACCURACY, null
+            )
+            task.addOnSuccessListener { location ->
+                if (continuation.isActive) continuation.resume(location)
+            }
+            task.addOnFailureListener {
+                if (continuation.isActive) continuation.resume(null)
+            }
+        } catch (e: Exception) {
+            continuation.resume(null)
+        }
+    }
 
     @android.annotation.SuppressLint("MissingPermission")
     fun startPrecisionCalibration(onLocationReceived: (Location) -> Unit) {
