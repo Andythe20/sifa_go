@@ -65,6 +65,7 @@ fun TicketScreen(
     var fullscreenImagePath by remember { mutableStateOf<String?>(null) }
     var removeConfirmIndex by remember { mutableIntStateOf(-1) }
     val coroutineScope = rememberCoroutineScope()
+    var showConfirmDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(tiposInfraccion) {
         if (tiposInfraccion.isEmpty()) {
@@ -341,12 +342,11 @@ fun TicketScreen(
 
         Button(
             onClick = {
-                // Solo permitimos un clic si no se está enviando ya
                 if (canSubmit) {
-                    onSubmitClick(selectedTipo!!.id, observaciones, latitude, longitude)
+                    showConfirmDialog = true
                 }
             },
-            enabled = canSubmit, // Desactiva botón visualmente durante el envío o si falta info
+            enabled = canSubmit,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp)
@@ -362,6 +362,49 @@ fun TicketScreen(
             } else {
                 Text("CONFIRMAR Y EMITIR MULTA", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
+        }
+
+        // Diálogo de confirmación de emisión de multa
+        if (showConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showConfirmDialog = false },
+                title = { Text("Confirmar emisión de multa") },
+                text = {
+                    Column {
+                        Text("¿Estás seguro de emitir esta multa?")
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Patente: ${vehicleData.patente}",
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (selectedTipo != null) {
+                            Text(
+                                text = "Infracción: ${selectedTipo!!.nombre}",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showConfirmDialog = false
+                            onSubmitClick(selectedTipo!!.id, observaciones, latitude, longitude)
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text("Sí, emitir")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showConfirmDialog = false }) {
+                        Text("Cancelar", color = Color.Gray)
+                    }
+                }
+            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))

@@ -151,6 +151,9 @@ fun CameraScreen(
     // INTERCAMBIO DE VISTAS
     when {
         coreViewModel.submitSuccess -> {
+            LaunchedEffect(coreViewModel.submitSuccess) {
+                context.vibrateShort()
+            }
             // VISTA DEL EXITO AL EMITIR INFRACCION
             SuccessTicketView(
                 sifaViewModel = sifaViewModel,
