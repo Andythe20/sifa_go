@@ -125,16 +125,17 @@ fun MainLayout(
         topBar = {
             TopAppBar(
                 title = {
-                    Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(text = title)
                         if (username.isNotBlank()) {
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
                                 color = Color.Transparent,
                                 border = BorderStroke(1.dp, Color.Gray.copy(alpha = 0.3f)),
-                                modifier = Modifier
-                                    .align(Alignment.End)
-                                    .padding(end = 8.dp)
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
