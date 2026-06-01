@@ -1,6 +1,10 @@
 package com.sifa.sifa_go.ui.navigation
 
 import androidx.camera.view.LifecycleCameraController
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -246,7 +250,11 @@ fun MainAppNavigation(
             modifier = Modifier.padding(paddingValues)
         ) {
 
-            composable("home") {
+            composable(
+                "home",
+                enterTransition = { slideInVertically(tween(350)) { it / 6 } + fadeIn(tween(250)) },
+                exitTransition = { fadeOut(tween(200)) }
+            ) {
                 // Limpiamos los datos del proceso al entrar al inicio para evitar parpadeos visuales
                 // Añadimos un pequeño retraso para asegurar que la animación de salida de la cámara haya terminado
                 LaunchedEffect(Unit) {
@@ -276,7 +284,11 @@ fun MainAppNavigation(
                 )
             }
 
-            composable("scan") {
+            composable(
+                "scan",
+                enterTransition = { slideInVertically(tween(350)) { it / 6 } + fadeIn(tween(250)) },
+                exitTransition = { fadeOut(tween(200)) }
+            ) {
                 CameraScreen(
                     cameraController = cameraController, // Pasamos el controlador seguro
                     sifaViewModel = sifaViewModel,
@@ -290,15 +302,27 @@ fun MainAppNavigation(
                 )
             }
 
-            composable("history") {
+            composable(
+                "history",
+                enterTransition = { slideInVertically(tween(350)) { it / 6 } + fadeIn(tween(250)) },
+                exitTransition = { fadeOut(tween(200)) }
+            ) {
                 HistoryScreen(sifaViewModel = sifaViewModel)
             }
 
-            composable("reports") {
+            composable(
+                "reports",
+                enterTransition = { slideInVertically(tween(350)) { it / 6 } + fadeIn(tween(250)) },
+                exitTransition = { fadeOut(tween(200)) }
+            ) {
                 ReportsScreen(sifaViewModel = sifaViewModel)
             }
 
-            composable("profile") {
+            composable(
+                "profile",
+                enterTransition = { slideInVertically(tween(350)) { it / 6 } + fadeIn(tween(250)) },
+                exitTransition = { fadeOut(tween(200)) }
+            ) {
                 ProfileScreen(
                     onLogout = onLogout
                 )

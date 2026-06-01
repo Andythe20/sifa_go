@@ -269,7 +269,6 @@ fun InfractionHistoryCard(infraction: InfraccionHistoryItem) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.5.dp, statusColor.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
             .clickable { expanded = !expanded },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onPrimary),

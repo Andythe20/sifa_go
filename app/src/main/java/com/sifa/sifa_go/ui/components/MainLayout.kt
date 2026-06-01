@@ -1,14 +1,18 @@
 package com.sifa.sifa_go.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +23,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -178,11 +183,35 @@ fun MainLayout(
                 containerColor = MaterialTheme.colorScheme.background,
             )  {
                 bottomNavItems.forEach { item ->
+                    val isSelected = currentRoute == item.route
+                    val iconOffset by animateDpAsState(
+                        targetValue = if (isSelected) (-4).dp else 0.dp,
+                        animationSpec = tween(300),
+                        label = "iconOffset"
+                    )
+
                     NavigationBarItem(
-                        icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title, maxLines = 1) },
-                        selected = currentRoute == item.route,
-                        alwaysShowLabel = currentRoute == item.route, // Solo muestra texto si está seleccionado, liberando mucho espacio visual.
+                        icon = {
+                            Box(
+                                modifier = Modifier.offset(y = iconOffset)
+                            ) {
+                                Icon(
+                                    item.icon,
+                                    contentDescription = item.title,
+                                    modifier = Modifier.scale(if (isSelected) 1.1f else 1f)
+                                )
+                            }
+                        },
+                        label = {
+                            AnimatedVisibility(
+                                visible = isSelected,
+                                enter = slideInVertically(tween(250)) { it } + fadeIn(tween(200)),
+                            ) {
+                                Text(item.title, maxLines = 1)
+                            }
+                        },
+                        selected = isSelected,
+                        alwaysShowLabel = false,
                         onClick = { onNavigate(item.route) }
                     )
                 }
