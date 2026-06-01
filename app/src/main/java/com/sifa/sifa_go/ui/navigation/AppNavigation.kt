@@ -222,8 +222,11 @@ fun MainAppNavigation(
                 // Añadimos un pequeño retraso para asegurar que la animación de salida de la cámara haya terminado
                 LaunchedEffect(Unit) {
                     kotlinx.coroutines.delay(1000)
-                    sifaViewModel.clearProcess()
-                    coreViewModel.clearData()
+                    // Solo limpiamos si el usuario NO ha iniciado un nuevo proceso en este segundo
+                    if (!sifaViewModel.isManualEntry && sifaViewModel.detectedPlate == null) {
+                        sifaViewModel.clearProcess()
+                        coreViewModel.clearData()
+                    }
                 }
 
                 HomeScreen(

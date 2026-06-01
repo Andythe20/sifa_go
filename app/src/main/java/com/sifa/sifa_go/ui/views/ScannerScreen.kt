@@ -432,6 +432,7 @@ private fun TicketFormWithOverlay(
             latitude = sifaViewModel.latitude,
             longitude = sifaViewModel.longitude,
             isSubmitting = coreViewModel.isSubmittingInfraccion,
+            isManualEntry = sifaViewModel.isManualEntry,
             onCancelClick = onCancelClick,
             onSubmitClick = { idInfraccion, observaciones, lat, lon ->
                 val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
