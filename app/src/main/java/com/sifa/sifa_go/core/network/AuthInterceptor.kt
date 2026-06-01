@@ -6,12 +6,14 @@ import com.sifa.sifa_go.data.model.RefreshTokenRequest
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.Protocol
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 class AuthInterceptor(
     private val sessionManager: SessionManager
@@ -24,8 +26,14 @@ class AuthInterceptor(
         private const val EXPIRY_MARGIN_MS = 30_000L
 
         private val refreshRetrofit: AuthApiService by lazy {
+            val client = OkHttpClient.Builder()
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(15, TimeUnit.SECONDS)
+                .writeTimeout(15, TimeUnit.SECONDS)
+                .build()
             Retrofit.Builder()
                 .baseUrl(AUTH_BASE_URL)
+                .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
                 .create(AuthApiService::class.java)
@@ -49,8 +57,7 @@ class AuthInterceptor(
         val expiry = sessionManager.getTokenExpiry()
         if (expiry > 0 && System.currentTimeMillis() >= (expiry * 1000) - EXPIRY_MARGIN_MS) {
             Log.d(TAG, "Token expired or about to expire, proactively refreshing")
-            val refreshed = tryProactiveRefresh()
-            if (refreshed) {
+            if (tryRefreshSession()) {
                 val newToken = sessionManager.getToken()
                 if (newToken != null) {
                     val authRequest = originalRequest.newBuilder()
@@ -84,13 +91,7 @@ class AuthInterceptor(
                 when (val result = tryRefresh()) {
                     is RefreshResult.Success -> {
                         Log.d(TAG, "Token refreshed successfully")
-                        sessionManager.saveSession(
-                            token = result.accessToken,
-                            refreshToken = result.refreshToken,
-                            username = result.username,
-                            roles = result.roles,
-                            expiry = result.expiry
-                        )
+                        saveRefreshedSession(result)
                         val newToken = sessionManager.getToken()
                         val retryRequest = originalRequest.newBuilder()
                             .header("Authorization", "Bearer $newToken")
@@ -104,7 +105,7 @@ class AuthInterceptor(
                         return createUnauthorizedResponse(originalRequest)
                     }
                     is RefreshResult.NetworkError -> {
-                        Log.d(TAG, "Network error during refresh, returning 401")
+                        Log.d(TAG, "Network error during refresh, returning original 401")
                         return createUnauthorizedResponse(originalRequest)
                     }
                 }
@@ -114,7 +115,17 @@ class AuthInterceptor(
         return response
     }
 
-    private fun tryProactiveRefresh(): Boolean {
+    private fun saveRefreshedSession(result: RefreshResult.Success) {
+        sessionManager.saveSession(
+            token = result.accessToken,
+            refreshToken = result.refreshToken,
+            username = result.username,
+            roles = result.roles,
+            expiry = result.expiry
+        )
+    }
+
+    private fun tryRefreshSession(): Boolean {
         val refreshToken = sessionManager.getRefreshToken() ?: return false
         return try {
             val response = runBlocking {
@@ -122,18 +133,22 @@ class AuthInterceptor(
             }
             if (response.isSuccessful) {
                 val body = response.body() ?: return false
-                sessionManager.saveSession(
-                    token = body.accessToken,
-                    refreshToken = body.refreshToken,
-                    username = body.sub,
-                    roles = body.roles,
-                    expiry = body.exp
+                saveRefreshedSession(
+                    RefreshResult.Success(
+                        accessToken = body.accessToken,
+                        refreshToken = body.refreshToken,
+                        username = body.sub,
+                        roles = body.roles,
+                        expiry = body.exp
+                    )
                 )
                 true
             } else {
+                Log.w(TAG, "Proactive refresh failed: HTTP ${response.code()}")
                 false
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "Proactive refresh threw exception", e)
             false
         }
     }
@@ -154,7 +169,7 @@ class AuthInterceptor(
     private fun tryRefresh(): RefreshResult {
         val refreshToken = sessionManager.getRefreshToken()
         if (refreshToken == null) {
-            Log.d(TAG, "No refresh token available")
+            Log.w(TAG, "No refresh token available")
             return RefreshResult.Expired
         }
 
@@ -163,27 +178,39 @@ class AuthInterceptor(
             val response = runBlocking {
                 refreshRetrofit.refresh(RefreshTokenRequest(refreshToken))
             }
-            if (response.isSuccessful) {
-                val body = response.body()
-                if (body != null) {
-                    Log.d(TAG, "Refresh successful")
-                    RefreshResult.Success(
-                        accessToken = body.accessToken,
-                        refreshToken = body.refreshToken,
-                        username = body.sub,
-                        roles = body.roles,
-                        expiry = body.exp
-                    )
-                } else {
-                    Log.d(TAG, "Refresh response body is null")
+
+            when (response.code()) {
+                in 200..299 -> {
+                    val body = response.body()
+                    if (body != null) {
+                        Log.d(TAG, "Refresh successful")
+                        RefreshResult.Success(
+                            accessToken = body.accessToken,
+                            refreshToken = body.refreshToken,
+                            username = body.sub,
+                            roles = body.roles,
+                            expiry = body.exp
+                        )
+                    } else {
+                        Log.w(TAG, "Refresh returned 2xx but body is null")
+                        RefreshResult.Expired
+                    }
+                }
+                400, 409 -> {
+                    Log.w(TAG, "Refresh rejected: HTTP ${response.code()} (invalid/expired token)")
                     RefreshResult.Expired
                 }
-            } else {
-                Log.d(TAG, "Refresh failed with code: ${response.code()}")
-                RefreshResult.Expired
+                in 500..599 -> {
+                    Log.e(TAG, "Refresh failed: HTTP ${response.code()} (server error)")
+                    RefreshResult.NetworkError
+                }
+                else -> {
+                    Log.w(TAG, "Refresh failed with unexpected code: ${response.code()}")
+                    RefreshResult.NetworkError
+                }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Refresh threw exception", e)
+            Log.e(TAG, "Refresh threw exception: ${e.javaClass.simpleName}: ${e.message}")
             RefreshResult.NetworkError
         }
     }
