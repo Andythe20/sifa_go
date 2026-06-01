@@ -51,6 +51,7 @@ fun TicketScreen(
     latitude: Double?,
     longitude: Double?,
     isSubmitting: Boolean = false, // Estado que viene desde el ViewModel (bloquea la UI)
+    isManualEntry: Boolean = false, // Identifica si venimos de ingreso manual
     onCancelClick: () -> Unit,
     onSubmitClick: (Int, String, Double?, Double?) -> Unit, // Pasa el ID de la infracción, observaciones y coordenadas
     onAddPhotoClick: () -> Unit,
@@ -222,14 +223,21 @@ fun TicketScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // 3. SECCIÓN DE FOTOS DE RESPALDO
-        Text(
-            text = "FOTOS DE RESPALDO (${evidencePhotos.size})",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp)
-        )
+        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+            Text(
+                text = "FOTOS DE RESPALDO (${evidencePhotos.size})",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            if (isManualEntry && evidencePhotos.isEmpty()) {
+                Text(
+                    text = "* Se requiere al menos 1 foto para el ingreso manual",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
 
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
@@ -329,14 +337,16 @@ fun TicketScreen(
         Spacer(modifier = Modifier.height(40.dp))
 
         // BOTONES FINALES
+        val canSubmit = selectedTipo != null && !isSubmitting && (!isManualEntry || evidencePhotos.isNotEmpty())
+
         Button(
             onClick = {
                 // Solo permitimos un clic si no se está enviando ya
-                if (selectedTipo != null && !isSubmitting) {
+                if (canSubmit) {
                     onSubmitClick(selectedTipo!!.id, observaciones, latitude, longitude)
                 }
             },
-            enabled = selectedTipo != null && !isSubmitting, // Desactiva botón visualmente durante el envío
+            enabled = canSubmit, // Desactiva botón visualmente durante el envío o si falta info
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp)

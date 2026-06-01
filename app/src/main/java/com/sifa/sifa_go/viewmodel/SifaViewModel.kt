@@ -27,6 +27,9 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
     // "guarda" el trabajo de la corrutina de la calibracion del gps
     private var gpsTimerJob: kotlinx.coroutines.Job? = null
 
+    // para saber si la patente se ingresará manualmente
+    var isManualEntry by mutableStateOf(false)
+
     // Variable que guardará la ruta de la foto de forma global
     // Usamos mutableStateOf para que la interfaz se actualice si esto cambia
     var currentPhotoPath by mutableStateOf<String?>(null)
@@ -156,6 +159,7 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
         gpsAttemptCount = 0
         isGPSCalibrating = false
         gpsTimerJob?.cancel()
+        isManualEntry = false
     }
 
     // Función para enviar la imagen

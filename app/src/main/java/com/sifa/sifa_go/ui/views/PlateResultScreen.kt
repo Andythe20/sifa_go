@@ -39,6 +39,7 @@ fun PlateResultScreen(
     initialPlate: String?,
     errorMessage: String?,
     isLoading: Boolean,
+    isManualEntry: Boolean = false,
     onConsultClick: (String) -> Unit,
     onRetakePhoto: () -> Unit
 ) {
@@ -81,6 +82,21 @@ fun PlateResultScreen(
                     color = Color.Gray,
                     fontSize = 14.sp
                 )
+            } else if (isManualEntry) {
+                // TEXTOS PARA INGRESO MANUAL VOLUNTARIO
+                Text(
+                    text = "Ingreso Manual",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Digite la patente del vehículo",
+                    color = Color.Gray,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
             } else {
                 // Si fue exitoso
                 Text(
@@ -153,7 +169,7 @@ fun PlateResultScreen(
                     .height(50.dp),
                 enabled = !isLoading // Desactiva el botón si está cargando
             ) {
-                Text("Tomar otra fotografía")
+                Text(if (isManualEntry) "Volver a la cámara" else "Tomar otra fotografía")
             }
         }
     }
