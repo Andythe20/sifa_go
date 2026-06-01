@@ -66,6 +66,8 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
     // Nombre del usuario logueado
     var currentUsername by mutableStateOf(sessionManager.getUsername() ?: "")
 
+    fun getSessionIat(): Long = sessionManager.getTokenIat()
+
     // Variables para el historial de infracciones (incluye paginacion)
     var infractionsHistory by mutableStateOf<List<InfraccionHistoryItem>>(emptyList())
     var historyLoading by mutableStateOf(false)
@@ -140,6 +142,20 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Función para limpiar los datos cuando se termine una multa o se cancele
+    fun refreshCurrentLocation() {
+        viewModelScope.launch {
+            val location = locationHelper.getLocation()
+            if (location != null) {
+                latitude = location.latitude
+                longitude = location.longitude
+                gpsAccuracy = location.accuracy
+                locationHelper.getAddressFromLocation(location.latitude, location.longitude) { address ->
+                    currentAddress = address
+                }
+            }
+        }
+    }
+
     fun clearProcess() {
         // Borramos los archivos físicos primero
         evidencePhotoPaths.forEach { path ->

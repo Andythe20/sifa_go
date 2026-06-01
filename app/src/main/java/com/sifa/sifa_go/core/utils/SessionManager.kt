@@ -15,6 +15,7 @@ class SessionManager(context: Context) {
         private const val KEY_TOKEN = "TOKEN"
         private const val KEY_REFRESH_TOKEN = "REFRESH_TOKEN"
         private const val KEY_TOKEN_EXPIRY = "TOKEN_EXPIRY"
+        private const val KEY_TOKEN_IAT = "TOKEN_IAT"
         private const val KEY_USERNAME = "USERNAME"
         private const val KEY_ROLES = "ROLES"
 
@@ -37,7 +38,8 @@ class SessionManager(context: Context) {
         refreshToken: String,
         username: String,
         roles: List<String>,
-        expiry: Long? = null
+        expiry: Long? = null,
+        iat: Long? = null
     ) {
         prefs.edit().apply {
             putString(KEY_TOKEN, token)
@@ -45,6 +47,7 @@ class SessionManager(context: Context) {
             putString(KEY_USERNAME, username)
             putStringSet(KEY_ROLES, roles.toSet())
             if (expiry != null) putLong(KEY_TOKEN_EXPIRY, expiry)
+            if (iat != null) putLong(KEY_TOKEN_IAT, iat)
             apply() // apply() guarda de forma asíncrona (más rápido)
         }
     }
@@ -58,6 +61,9 @@ class SessionManager(context: Context) {
 
     fun getTokenExpiry(): Long =
         prefs.getLong(KEY_TOKEN_EXPIRY, 0L)
+
+    fun getTokenIat(): Long =
+        prefs.getLong(KEY_TOKEN_IAT, 0L)
 
     fun getUsername(): String? =
         prefs.getString(KEY_USERNAME, null)

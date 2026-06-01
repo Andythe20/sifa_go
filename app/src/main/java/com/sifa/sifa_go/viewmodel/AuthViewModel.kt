@@ -52,7 +52,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                                 refreshToken = body.refreshToken,
                                 username = body.sub,
                                 roles = body.roles,
-                                expiry = body.exp
+                                expiry = body.exp,
+                                iat = body.iat
                             )
                             isLoginSuccessful = true
                         } else {

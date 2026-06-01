@@ -42,6 +42,7 @@ import com.sifa.sifa_go.ui.views.HelpScreen
 import com.sifa.sifa_go.ui.views.HistoryScreen
 import com.sifa.sifa_go.ui.views.HomeScreen
 import com.sifa.sifa_go.ui.views.ProfileScreen
+import com.sifa.sifa_go.ui.views.ReportsScreen
 import com.sifa.sifa_go.viewmodel.CoreViewModel
 import com.sifa.sifa_go.viewmodel.PresenceViewModel
 
@@ -294,9 +295,7 @@ fun MainAppNavigation(
             }
 
             composable("reports") {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Pantalla de Reportes en construcción")
-                }
+                ReportsScreen(sifaViewModel = sifaViewModel)
             }
 
             composable("profile") {

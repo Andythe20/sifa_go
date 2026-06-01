@@ -120,7 +120,8 @@ class AuthInterceptor(
             refreshToken = result.refreshToken,
             username = result.username,
             roles = result.roles,
-            expiry = result.expiry
+            expiry = result.expiry,
+            iat = result.iat
         )
     }
 
@@ -138,7 +139,8 @@ class AuthInterceptor(
                         refreshToken = body.refreshToken,
                         username = body.sub,
                         roles = body.roles,
-                        expiry = body.exp
+                        expiry = body.exp,
+                        iat = body.iat
                     )
                 )
                 true
@@ -152,13 +154,14 @@ class AuthInterceptor(
         }
     }
 
-    private sealed class RefreshResult {
+        private sealed class RefreshResult {
         data class Success(
             val accessToken: String,
             val refreshToken: String,
             val username: String,
             val roles: List<String>,
-            val expiry: Long
+            val expiry: Long,
+            val iat: Long
         ) : RefreshResult()
 
         data object Expired : RefreshResult()
@@ -188,7 +191,8 @@ class AuthInterceptor(
                             refreshToken = body.refreshToken,
                             username = body.sub,
                             roles = body.roles,
-                            expiry = body.exp
+                            expiry = body.exp,
+                            iat = body.iat
                         )
                     } else {
                         Log.w(TAG, "Refresh returned 2xx but body is null")
