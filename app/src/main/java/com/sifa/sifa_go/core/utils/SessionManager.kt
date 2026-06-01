@@ -3,20 +3,27 @@ package com.sifa.sifa_go.core.utils
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 class SessionManager(context: Context) {
 
-    // Usamos SharedPreferences para almacenar datos de sesión de forma persistente
     companion object {
-        // El nombre del archivo de preferencias
         private const val PREFS_NAME = "sifa_session"
 
-        // Las claves para almacenar los datos de sesión
         private const val KEY_TOKEN = "TOKEN"
         private const val KEY_REFRESH_TOKEN = "REFRESH_TOKEN"
         private const val KEY_TOKEN_EXPIRY = "TOKEN_EXPIRY"
         private const val KEY_USERNAME = "USERNAME"
         private const val KEY_ROLES = "ROLES"
+
+        private val _sessionExpiredEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        val sessionExpiredEvent: SharedFlow<Unit> = _sessionExpiredEvent.asSharedFlow()
+
+        fun notifySessionExpired() {
+            _sessionExpiredEvent.tryEmit(Unit)
+        }
     }
 
     // Instancia de SharedPreferences

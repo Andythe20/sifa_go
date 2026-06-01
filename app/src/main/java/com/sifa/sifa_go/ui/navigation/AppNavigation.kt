@@ -27,8 +27,10 @@ import com.sifa.sifa_go.core.network.GpsStatus
 import com.sifa.sifa_go.core.network.NetworkStatus
 import com.sifa.sifa_go.core.network.rememberGpsStatus
 import com.sifa.sifa_go.core.network.rememberNetworkStatus
+import com.sifa.sifa_go.core.network.AuthRetrofitClient
 import com.sifa.sifa_go.core.utils.BiometricHelper
 import com.sifa.sifa_go.core.utils.SessionManager
+import com.sifa.sifa_go.data.model.RefreshTokenRequest
 import com.sifa.sifa_go.ui.components.MainLayout
 import com.sifa.sifa_go.ui.components.NetworkBanner
 import com.sifa.sifa_go.ui.views.CameraScreen
@@ -56,6 +58,15 @@ fun AppNavigation() {
     val networkStatus = rememberNetworkStatus()
     val gpsStatus = rememberGpsStatus()
 
+    // Observa eventos de sesión expirada y redirige al login
+    LaunchedEffect(Unit) {
+        SessionManager.sessionExpiredEvent.collect {
+            rootNavController.navigate("login") {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         NetworkBanner(
             networkStatus = networkStatus.value,
@@ -69,15 +80,29 @@ fun AppNavigation() {
             // RUTA DE DECISIÓN (Invisible para el usuario)
             composable("check_auth") {
                 LaunchedEffect(Unit) {
-                    val token = sessionManager.getToken()
-                    if (token == null) {
-                        // No hay sesión -> Al Login
-                        rootNavController.navigate("login") {
-                            // Eliminamos el historial de pantallas para que no pueda volver con el botón "Atrás", incluyendo el check_auth
-                            popUpTo("check_auth") { inclusive = true }
+                    if (sessionManager.hasValidSession()) {
+                        // Intentar refresh proactivo antes de mostrar biometría
+                        val refreshToken = sessionManager.getRefreshToken()
+                        if (refreshToken != null) {
+                            try {
+                                val refreshResponse = AuthRetrofitClient.apiService.refresh(
+                                    RefreshTokenRequest(refreshToken)
+                                )
+                                if (refreshResponse.isSuccessful) {
+                                    val body = refreshResponse.body()
+                                    if (body != null) {
+                                        sessionManager.saveSession(
+                                            token = body.accessToken,
+                                            refreshToken = body.refreshToken,
+                                            username = body.sub,
+                                            roles = body.roles,
+                                            expiry = body.exp
+                                        )
+                                    }
+                                }
+                            } catch (_: Exception) { }
                         }
-                    } else {
-                        // HAY SESIÓN -> Pedir huella de inmediato
+
                         BiometricHelper.authenticate(
                             context = context,
                             onSuccess = {
@@ -86,11 +111,14 @@ fun AppNavigation() {
                                 }
                             },
                             onError = { error ->
-                                // Si falla la huella o cancela, lo mandamos al login por seguridad
-                                // o puedes dejarlo en una pantalla de 'Reintentar Huella'
                                 rootNavController.navigate("login")
                             }
                         )
+                    } else {
+                        sessionManager.logout()
+                        rootNavController.navigate("login") {
+                            popUpTo("check_auth") { inclusive = true }
+                        }
                     }
                 }
 

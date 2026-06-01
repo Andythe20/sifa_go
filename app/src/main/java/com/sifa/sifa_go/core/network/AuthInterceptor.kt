@@ -100,6 +100,7 @@ class AuthInterceptor(
                     is RefreshResult.Expired -> {
                         Log.d(TAG, "Refresh token expired, logging out")
                         sessionManager.logout()
+                        SessionManager.notifySessionExpired()
                         return createUnauthorizedResponse(originalRequest)
                     }
                     is RefreshResult.NetworkError -> {
