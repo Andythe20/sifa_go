@@ -3,8 +3,6 @@ package com.sifa.sifa_go.core.network
 import com.sifa.sifa_go.data.model.FiscalizadorHeartbeatRequest
 import com.sifa.sifa_go.data.model.PlateInfoResponse
 import com.sifa.sifa_go.data.model.TipoInfraccionResponse
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.POST
 import retrofit2.http.GET
 import com.sifa.sifa_go.data.model.InfraccionResponse
@@ -56,14 +54,7 @@ interface CoreApiService {
 }
 
 object CoreRetrofitClient {
-    private const val BASE_URL = "http://3.219.255.24"
-
     val apiService: CoreApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(NetworkModule.authOkHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(CoreApiService::class.java)
+        NetworkModule.retrofit.create(CoreApiService::class.java)
     }
 }

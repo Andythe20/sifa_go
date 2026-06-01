@@ -21,18 +21,17 @@ class AuthInterceptor(
 
     private companion object {
         private const val TAG = "AuthInterceptor"
-        private const val AUTH_BASE_URL = "http://3.219.255.24"
         private const val CONTENT_TYPE_JSON = "application/json"
         private const val EXPIRY_MARGIN_MS = 30_000L
 
         private val refreshRetrofit: AuthApiService by lazy {
             val client = OkHttpClient.Builder()
-                .connectTimeout(15, TimeUnit.SECONDS)
-                .readTimeout(15, TimeUnit.SECONDS)
-                .writeTimeout(15, TimeUnit.SECONDS)
+                .connectTimeout(ServerConfig.CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .readTimeout(ServerConfig.READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .writeTimeout(ServerConfig.WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .build()
             Retrofit.Builder()
-                .baseUrl(AUTH_BASE_URL)
+                .baseUrl(ServerConfig.BASE_URL)
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
