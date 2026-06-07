@@ -46,7 +46,7 @@ import com.sifa.sifa_go.ui.views.HelpScreen
 import com.sifa.sifa_go.ui.views.HistoryScreen
 import com.sifa.sifa_go.ui.views.HomeScreen
 import com.sifa.sifa_go.ui.views.ProfileScreen
-import com.sifa.sifa_go.ui.views.ReportsScreen
+import com.sifa.sifa_go.ui.views.OverviewScreen
 import com.sifa.sifa_go.viewmodel.CoreViewModel
 import com.sifa.sifa_go.viewmodel.PresenceViewModel
 
@@ -317,11 +317,11 @@ fun MainAppNavigation(
             }
 
             composable(
-                "reports",
+                "overview",
                 enterTransition = { slideInVertically(tween(350)) { it / 6 } + fadeIn(tween(250)) },
                 exitTransition = { fadeOut(tween(200)) }
             ) {
-                ReportsScreen(sifaViewModel = sifaViewModel)
+                OverviewScreen(sifaViewModel = sifaViewModel)
             }
 
             composable(
