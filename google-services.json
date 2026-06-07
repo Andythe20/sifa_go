@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "466565402174",
+    "project_id": "sifa-notification",
+    "storage_bucket": "sifa-notification.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:466565402174:android:b343b66fed91b1ddc44b6f",
+        "android_client_info": {
+          "package_name": "com.sifa.sifa_go"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqpZtRAj6oFSHHpRuM9fgpgXN_eJEfhVI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

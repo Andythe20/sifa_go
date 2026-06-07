@@ -6,6 +6,7 @@ import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sifa.sifa_go.core.network.CoreRetrofitClient
+import com.sifa.sifa_go.core.network.ServerConfig
 import com.sifa.sifa_go.core.utils.LocationHelper
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.FiscalizadorHeartbeatRequest
@@ -20,7 +21,6 @@ import android.os.Build
 class PresenceViewModel : ViewModel() {
 
     private var heartbeatJob: Job? = null
-    private val HEARTBEAT_INTERVAL_MS = 3 * 60 * 1000L
 
     private val _heartbeatTrigger = MutableStateFlow(0L)
     val heartbeatTrigger: StateFlow<Long> = _heartbeatTrigger.asStateFlow()
@@ -35,12 +35,10 @@ class PresenceViewModel : ViewModel() {
         val locationHelper = LocationHelper(context)
 
         heartbeatJob = viewModelScope.launch {
-            // Enviar latido inmediatamente al iniciar
             sendHeartbeat(locationHelper, sessionManager, deviceId, brand, model)
 
-            // Luego repetir cada 3 minutos
             while (true) {
-                delay(HEARTBEAT_INTERVAL_MS)
+                delay(ServerConfig.HEARTBEAT_INTERVAL_MS)
                 sendHeartbeat(locationHelper, sessionManager, deviceId, brand, model)
             }
         }

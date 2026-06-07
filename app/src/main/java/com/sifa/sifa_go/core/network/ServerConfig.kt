@@ -8,4 +8,5 @@ object ServerConfig {
     const val CONNECT_TIMEOUT_SECONDS = 15L
     const val READ_TIMEOUT_SECONDS = 15L
     const val WRITE_TIMEOUT_SECONDS = 15L
+    const val HEARTBEAT_INTERVAL_MS = 3 * 60 * 1000L
 }
