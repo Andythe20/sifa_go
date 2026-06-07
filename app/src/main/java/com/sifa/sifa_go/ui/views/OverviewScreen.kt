@@ -31,7 +31,7 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReportsScreen(sifaViewModel: SifaViewModel) {
+fun OverviewScreen(sifaViewModel: SifaViewModel) {
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     val today = dateFormat.format(Date())
 
@@ -78,7 +78,7 @@ fun ReportsScreen(sifaViewModel: SifaViewModel) {
             .background(MaterialTheme.colorScheme.background)
     ) {
         Text(
-            text = "REPORTES",
+            text = "RESUMEN",
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
