@@ -347,6 +347,10 @@ fun TicketScreen(
                 }
             },
             enabled = canSubmit,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Red,
+                contentColor = Color.White
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp)
@@ -392,7 +396,7 @@ fun TicketScreen(
                             onSubmitClick(selectedTipo!!.id, observaciones, latitude, longitude)
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
+                            containerColor = Color.Red,
                             contentColor = Color.White
                         )
                     ) {
@@ -416,7 +420,7 @@ fun TicketScreen(
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text("CANCELAR", color = if (isSubmitting) Color.Gray else MaterialTheme.colorScheme.error)
+            Text("CANCELAR", color = if (isSubmitting) Color.Gray else MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -559,5 +563,37 @@ private fun FullScreenPhotoViewer(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+fun TicketScreenPreview() {
+    SIFA_GOTheme {
+        TicketScreen(
+            vehicleData = PlateInfoResponse(
+                patente = "GKSB-78",
+                marca = "TOYOTA",
+                modelo = "YARIS",
+                anio_fabricacion = 2020,
+                color = "ROJO",
+                nro_motor = "1NZFE1234567",
+                nro_serie = "JTD1234567890",
+                rut = "12.345.678-9",
+                propietario = "JUAN PEREZ"
+            ),
+            tiposInfraccion = listOf(
+                TipoInfraccionResponse(1, "ESTACIONAR EN LUGAR PROHIBIDO"),
+                TipoInfraccionResponse(2, "CIRCULAR SIN REVISIÓN TÉCNICA"),
+                TipoInfraccionResponse(3, "NO RESPETAR SEÑAL PARE")
+            ),
+            evidencePhotos = listOf("/tmp/sample_photo.jpg"),
+            latitude = -33.4489,
+            longitude = -70.6693,
+            onCancelClick = {},
+            onSubmitClick = { _, _, _, _ -> },
+            onAddPhotoClick = {},
+            onRemovePhoto = {}
+        )
     }
 }

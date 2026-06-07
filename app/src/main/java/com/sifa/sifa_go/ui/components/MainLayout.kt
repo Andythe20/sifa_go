@@ -5,13 +5,14 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.EaseOutCubic
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,20 +33,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialogDefaults.containerColor
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -59,12 +59,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sifa.sifa_go.ui.theme.SIFA_GOTheme
 import com.sifa.sifa_go.viewmodel.PresenceViewModel
 
 data class BottomNavItem(
@@ -89,136 +93,173 @@ fun MainLayout(
         BottomNavItem("Escanear", Icons.Filled.CameraAlt, "scan"),
         BottomNavItem("Historial", Icons.Filled.History, "history"),
         BottomNavItem("Inicio", Icons.Filled.Home, "home"),
-        BottomNavItem("Reportes", Icons.Filled.Assessment, "reports"),
+        BottomNavItem("Resumen", Icons.Filled.Assessment, "overview"),
         BottomNavItem("Perfil", Icons.Filled.Person, "profile")
     )
 
     val isRootTab = bottomNavItems.any { it.route == currentRoute }
 
-    // ── Animación del punto de estado (heartbeat) ──
+    // Heartbeat animation logic
     val heartbeatTrigger by presenceViewModel?.heartbeatTrigger?.collectAsState() ?: remember { mutableStateOf(0L) }
-
     val infiniteTransition = rememberInfiniteTransition(label = "breathing")
     val breathingScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.2f,
+        targetValue = 1.15f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1800, easing = EaseInOutCubic),
+            animation = tween(durationMillis = 2000, easing = EaseInOutCubic),
             repeatMode = RepeatMode.Reverse
         ),
         label = "breathingScale"
     )
 
     val pulseAnim = remember { Animatable(1f) }
-    var pulsePending by remember { mutableStateOf(0L) }
     LaunchedEffect(heartbeatTrigger) {
         if (heartbeatTrigger > 0) {
-            pulsePending = heartbeatTrigger
             pulseAnim.snapTo(1f)
-            pulseAnim.animateTo(1.35f, tween(100, easing = EaseOutCubic))
-            pulseAnim.animateTo(1f, tween(250, easing = EaseInCubic))
+            pulseAnim.animateTo(1.4f, tween(150, easing = EaseOutCubic))
+            pulseAnim.animateTo(1f, tween(300, easing = EaseInCubic))
         }
     }
     val dotScale = if (pulseAnim.value > 1.01f) pulseAnim.value else breathingScale
 
-    Scaffold (
+    Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = title)
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary
+                        )
                         if (username.isNotBlank()) {
                             Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = Color.Transparent,
-                                border = BorderStroke(1.dp, Color.Gray.copy(alpha = 0.3f)),
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surface,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                tonalElevation = 2.dp
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Box(
                                         modifier = Modifier
                                             .size(8.dp)
-                                            .scale(dotScale)
+                                            .graphicsLayer(scaleX = dotScale, scaleY = dotScale)
                                             .background(Color(0xFF4CAF50), CircleShape)
                                     )
-                                    Spacer(modifier = Modifier.size(3.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Icon(
                                         Icons.Filled.Person,
                                         contentDescription = null,
-                                        tint = Color.Gray,
-                                        modifier = Modifier.size(12.dp)
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(14.dp)
                                     )
-                                    Spacer(modifier = Modifier.size(3.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = username,
-                                        fontSize = 11.sp,
-                                        color = Color.Gray,
-                                        fontWeight = FontWeight.Normal
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(MaterialTheme.colorScheme.background),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.primary
+                ),
                 navigationIcon = {
                     if (!isRootTab) {
                         IconButton(onClick = onBackClick) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Volver atrás"
+                                contentDescription = "Volver atrás",
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
-                },
+                }
             )
         },
         bottomBar = {
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.background,
-            )  {
+                tonalElevation = 8.dp,
+                modifier = Modifier.height(80.dp)
+            ) {
                 bottomNavItems.forEach { item ->
                     val isSelected = currentRoute == item.route
-                    val iconOffset by animateDpAsState(
-                        targetValue = if (isSelected) (-4).dp else 0.dp,
-                        animationSpec = tween(300),
-                        label = "iconOffset"
+                    
+                    val scale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.2f else 1.0f,
+                        animationSpec = tween(durationMillis = 300),
+                        label = "iconScale"
                     )
 
                     NavigationBarItem(
+                        selected = isSelected,
+                        onClick = { onNavigate(item.route) },
                         icon = {
-                            Box(
-                                modifier = Modifier.offset(y = iconOffset)
-                            ) {
-                                Icon(
-                                    item.icon,
-                                    contentDescription = item.title,
-                                    modifier = Modifier.scale(if (isSelected) 1.1f else 1f)
-                                )
-                            }
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.title,
+                                modifier = Modifier.graphicsLayer(scaleX = scale, scaleY = scale)
+                            )
                         },
                         label = {
-                            AnimatedVisibility(
-                                visible = isSelected,
-                                enter = slideInVertically(tween(250)) { it } + fadeIn(tween(200)),
-                            ) {
-                                Text(item.title, maxLines = 1)
-                            }
+                            Text(
+                                text = item.title,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    letterSpacing = 0.sp
+                                ),
+                                maxLines = 1
+                            )
                         },
-                        selected = isSelected,
                         alwaysShowLabel = false,
-                        onClick = { onNavigate(item.route) }
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.surface,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
                     )
                 }
             }
         }
     ) { paddingValues ->
-        content(paddingValues)
+        Box(modifier = Modifier.padding(paddingValues)) {
+            content(PaddingValues(0.dp))
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun MainLayoutPreview() {
+    SIFA_GOTheme {
+        MainLayout(
+            title = "SIFA GO",
+            username = "JUAN PEREZ",
+            currentRoute = "home",
+            onNavigate = {}
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Contenido de la Vista")
+            }
+        }
     }
 }
