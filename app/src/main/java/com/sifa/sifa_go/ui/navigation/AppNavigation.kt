@@ -1,5 +1,6 @@
 package com.sifa.sifa_go.ui.navigation
 
+import android.widget.Toast
 import androidx.camera.view.LifecycleCameraController
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,12 +28,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.sifa.sifa_go.core.network.GpsStatus
-import com.sifa.sifa_go.core.network.NetworkStatus
 import com.sifa.sifa_go.core.network.rememberGpsStatus
 import com.sifa.sifa_go.core.network.rememberNetworkStatus
 import com.sifa.sifa_go.core.network.AuthRetrofitClient
 import com.sifa.sifa_go.core.utils.BiometricHelper
 import com.sifa.sifa_go.core.utils.SessionManager
+import com.sifa.sifa_go.core.utils.vibrateShort
 import com.sifa.sifa_go.data.model.RefreshTokenRequest
 import com.sifa.sifa_go.ui.components.MainLayout
 import com.sifa.sifa_go.ui.components.NetworkBanner
@@ -66,6 +66,12 @@ fun AppNavigation() {
     // Observa eventos de sesión expirada y redirige al login
     LaunchedEffect(Unit) {
         SessionManager.sessionExpiredEvent.collect {
+            Toast.makeText(
+                context,
+                "Sesión expirada. Por favor, ingresa de nuevo.",
+                Toast.LENGTH_LONG
+            ).show()
+            context.vibrateShort()
             rootNavController.navigate("login") {
                 popUpTo(0) { inclusive = true }
             }
