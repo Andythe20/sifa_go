@@ -52,11 +52,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     user = response.body()
                     Log.d("ProfileVM", "Profile loaded successfully")
                 } else {
-                    val errorMsg = when (response.code()) {
-                        401 -> "Sesión expirada. Intente cerrar sesión y volver a iniciar."
-                        else -> NetworkErrorHandler.getErrorMessage(response.code())
-                    }
-                    error = errorMsg
+                    error = NetworkErrorHandler.getErrorMessage(response.code())
                     Log.d("ProfileVM", "Profile fetch failed: ${response.code()}")
                 }
             } catch (e: Exception) {
