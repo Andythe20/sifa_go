@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -37,7 +38,28 @@ import com.sifa.sifa_go.core.utils.vibrateShort
 import com.sifa.sifa_go.data.model.RefreshTokenRequest
 import com.sifa.sifa_go.ui.components.MainLayout
 import com.sifa.sifa_go.ui.components.NetworkBanner
-import com.sifa.sifa_go.ui.views.CameraScreen
+import androidx.navigation.navigation
+import com.sifa.sifa_go.ui.views.LiveScannerScreen
+import com.sifa.sifa_go.ui.views.PreviewScreen
+import com.sifa.sifa_go.ui.views.TicketSuccessScreen
+import com.sifa.sifa_go.ui.views.TicketScreen
+import com.sifa.sifa_go.ui.views.VehicleInfoScreen
+import com.sifa.sifa_go.ui.views.PlateResultScreen
+import com.sifa.sifa_go.ui.views.CameraView
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.foundation.background
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import java.io.File
+import android.util.Log
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.Icons
+import androidx.compose.ui.graphics.Color
 import com.sifa.sifa_go.ui.views.LoginScreen
 import com.sifa.sifa_go.viewmodel.SifaViewModel
 import com.sifa.sifa_go.R
@@ -219,9 +241,18 @@ fun MainAppNavigation(
     val currentRoute = navBackStackEntry?.destination?.route ?: "home"
 
     // La cámara se crea aquí.
-    // Como estamos dentro de MainAppNavigation, la cámara sobrevivirá aunque pases al Historial y vuelvas.
     val context = LocalContext.current
     val cameraController = remember { LifecycleCameraController(context) }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+
+    // Controlamos el ciclo de vida de la cámara de forma manual y eficiente
+    // Se bindea una sola vez al entrar a la app principal y se desvincula al salir.
+    DisposableEffect(lifecycleOwner) {
+        cameraController.bindToLifecycle(lifecycleOwner)
+        onDispose {
+            cameraController.unbind()
+        }
+    }
 
     MainLayout(
         presenceViewModel = presenceViewModel,
@@ -261,16 +292,9 @@ fun MainAppNavigation(
                 enterTransition = { slideInVertically(tween(350)) { it / 6 } + fadeIn(tween(250)) },
                 exitTransition = { fadeOut(tween(200)) }
             ) {
-                // Limpiamos los datos del proceso al entrar al inicio para evitar parpadeos visuales
-                // Añadimos un pequeño retraso para asegurar que la animación de salida de la cámara haya terminado
-                LaunchedEffect(Unit) {
-                    kotlinx.coroutines.delay(1000)
-                    // Solo limpiamos si el usuario NO ha iniciado un nuevo proceso en este segundo
-                    if (!sifaViewModel.isManualEntry && sifaViewModel.detectedPlate == null) {
-                        sifaViewModel.clearProcess()
-                        coreViewModel.clearData()
-                    }
-                }
+                // Ya no necesitamos la limpieza proactiva aquí porque se hace al entrar al grafo de fiscalización
+                // o al finalizar con éxito. Esto evita parpadeos y asegura que si el usuario vuelve atrás 
+                // desde la cámara al Home, los datos sigan ahí si decide re-entrar (opcional).
 
                 HomeScreen(
                     username = sifaViewModel.currentUsername,
@@ -285,27 +309,220 @@ fun MainAppNavigation(
                         coreViewModel.clearData()
                         sifaViewModel.isManualEntry = true
                         sifaViewModel.detectedPlate = "" // Limpiamos residuos
-                        tabsNavController.navigate("scan") { launchSingleTop = true }
+                        sifaViewModel.startGpsCalibration() // Iniciamos GPS para el ingreso manual
+                        tabsNavController.navigate("fiscalizacion/resultado") { launchSingleTop = true }
                     }
                 )
             }
 
-            composable(
-                "scan",
-                enterTransition = { slideInVertically(tween(350)) { it / 6 } + fadeIn(tween(250)) },
-                exitTransition = { fadeOut(tween(200)) }
+            // 1. FLUJO DE FISCALIZACIÓN (GRAFO ANIDADO)
+            navigation(
+                startDestination = "fiscalizacion/camara",
+                route = "scan"
             ) {
-                CameraScreen(
-                    cameraController = cameraController, // Pasamos el controlador seguro
-                    sifaViewModel = sifaViewModel,
-                    coreViewModel = coreViewModel,
-                    gpsStatus = gpsStatus,
-                    currentRoute = currentRoute,
-                    onPhotoConfirmed = { pathToUpload ->
-                        sifaViewModel.currentPhotoPath = pathToUpload
-                        println("Enviando foto al backend: $pathToUpload")
+                composable(
+                    "fiscalizacion/camara",
+                    enterTransition = { slideInVertically(tween(350)) { it / 6 } + fadeIn(tween(250)) },
+                    exitTransition = { fadeOut(tween(200)) }
+                ) {
+                    // Limpieza proactiva al entrar a la cámara (inicio del flujo)
+                    LaunchedEffect(Unit) {
+                        sifaViewModel.clearProcess()
+                        coreViewModel.clearData()
                     }
-                )
+
+                    if (sifaViewModel.currentPhotoPath != null) {
+                        PreviewScreen(
+                            photoPath = sifaViewModel.currentPhotoPath!!,
+                            onRetakePhoto = {
+                                sifaViewModel.removeEvidencePhoto(sifaViewModel.currentPhotoPath!!)
+                                sifaViewModel.currentPhotoPath = null
+                            },
+                            onSendPhoto = { finalPath ->
+                                sifaViewModel.uploadImageToBackend(finalPath)
+                                tabsNavController.navigate("fiscalizacion/resultado")
+                            }
+                        )
+                    } else {
+                        LiveScannerScreen(
+                            cameraController = cameraController,
+                            gpsStatus = gpsStatus,
+                            isGPSCalibrating = sifaViewModel.isGPSCalibrating,
+                            gpsAccuracy = sifaViewModel.gpsAccuracy,
+                            onStartGpsCalibration = { sifaViewModel.startGpsCalibration() },
+                            onPhotoTaken = { path ->
+                                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+                                sifaViewModel.captureTime = java.time.LocalDateTime.now().format(formatter)
+                                sifaViewModel.currentPhotoPath = path
+                                sifaViewModel.evidencePhotoPaths.add(path)
+                            }
+                        )
+                    }
+                }
+
+                composable(
+                    "fiscalizacion/resultado",
+                    enterTransition = { fadeIn(tween(250)) },
+                    exitTransition = { fadeOut(tween(200)) }
+                ) {
+                    PlateResultScreen(
+                        initialPlate = sifaViewModel.detectedPlate,
+                        errorMessage = coreViewModel.errorMessage ?: sifaViewModel.detectionError,
+                        isLoading = coreViewModel.isLoading,
+                        isManualEntry = sifaViewModel.isManualEntry,
+                        onConsultClick = { finalPlate ->
+                            sifaViewModel.detectedPlate = finalPlate
+                            sifaViewModel.detectionError = null
+                            coreViewModel.fetchVehicleInfo(finalPlate)
+                            tabsNavController.navigate("fiscalizacion/info_vehiculo")
+                        },
+                        onRetakePhoto = {
+                            // Al re-tomar foto desde resultado, limpiamos solo la foto actual
+                            // pero mantenemos el modo (manual o automático)
+                            sifaViewModel.currentPhotoPath = null
+                            if (!tabsNavController.popBackStack("fiscalizacion/camara", false)) {
+                                tabsNavController.navigate("fiscalizacion/camara")
+                            }
+                        }
+                    )
+                }
+
+                composable(
+                    "fiscalizacion/info_vehiculo",
+                    enterTransition = { fadeIn(tween(250)) },
+                    exitTransition = { fadeOut(tween(200)) }
+                ) {
+                    if (coreViewModel.vehicleData != null) {
+                        VehicleInfoScreen(
+                            vehicleData = coreViewModel.vehicleData!!,
+                            onIssueFineClick = { tabsNavController.navigate("fiscalizacion/formulario") },
+                            onNewScanClick = {
+                                sifaViewModel.clearProcess()
+                                coreViewModel.clearData()
+                                tabsNavController.popBackStack("fiscalizacion/camara", false)
+                            }
+                        )
+                    } else {
+                        // Si por alguna razón llegamos aquí y no hay datos, mostramos un cargando
+                        // o volvemos atrás. Dado que fetchVehicleInfo es asíncrono, esto puede pasar
+                        // si la navegación ocurre antes de que la API responda.
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                        
+                        // Si hay un mensaje de error, significa que la carga falló
+                        LaunchedEffect(coreViewModel.errorMessage) {
+                            if (coreViewModel.errorMessage != null) {
+                                tabsNavController.popBackStack()
+                            }
+                        }
+                    }
+                }
+
+                composable(
+                    "fiscalizacion/formulario",
+                    enterTransition = { fadeIn(tween(250)) },
+                    exitTransition = { fadeOut(tween(200)) }
+                ) {
+                    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+                    val mainExecutor = remember { androidx.core.content.ContextCompat.getMainExecutor(context) }
+                    var isTakingEvidencePhoto by remember { androidx.compose.runtime.mutableStateOf(false) }
+
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        TicketScreen(
+                            vehicleData = coreViewModel.vehicleData!!,
+                            tiposInfraccion = coreViewModel.tiposInfraccion,
+                            evidencePhotos = sifaViewModel.evidencePhotoPaths,
+                            latitude = sifaViewModel.latitude,
+                            longitude = sifaViewModel.longitude,
+                            isSubmitting = coreViewModel.isSubmittingInfraccion,
+                            isManualEntry = sifaViewModel.isManualEntry,
+                            onCancelClick = { tabsNavController.popBackStack() },
+                            onSubmitClick = { idInfraccion, observaciones, lat, lon ->
+                                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+                                val fechaFiscalizacion = sifaViewModel.captureTime ?: java.time.LocalDateTime.now().format(formatter)
+                                val lugarFinal = sifaViewModel.currentAddress ?: "Ubicación GPS: $lat, $lon"
+
+                                val request = com.sifa.sifa_go.data.model.InfraccionCreateRequest(
+                                    lugar = lugarFinal,
+                                    fecha = fechaFiscalizacion,
+                                    latitud = lat?.toFloat() ?: 0f,
+                                    longitud = lon?.toFloat() ?: 0f,
+                                    patenteVehiculo = coreViewModel.vehicleData!!.patente,
+                                    idTipoInfraccion = idInfraccion,
+                                    observaciones = observaciones,
+                                    fechaCitacion = null
+                                )
+                                coreViewModel.submitInfraccion(request, sifaViewModel.evidencePhotoPaths.toList())
+                            },
+                            onAddPhotoClick = { isTakingEvidencePhoto = true },
+                            onRemovePhoto = { path ->
+                                sifaViewModel.removeEvidencePhoto(path)
+                            }
+                        )
+
+                        if (isTakingEvidencePhoto) {
+                            Box(
+                                modifier = Modifier.fillMaxSize().background(Color.Black)
+                            ) {
+                                CameraView(cameraController = cameraController, lifecycle = lifecycleOwner, modifier = Modifier.fillMaxSize())
+                                IconButton(
+                                    onClick = { isTakingEvidencePhoto = false },
+                                    modifier = Modifier.align(Alignment.TopStart).padding(top = 40.dp, start = 16.dp)
+                                ) {
+                                    Icon(androidx.compose.material.icons.Icons.Filled.Close, contentDescription = "Cerrar", tint = Color.White)
+                                }
+                                ExtendedFloatingActionButton(
+                                    onClick = {
+                                        context.vibrateShort()
+                                        val photoFile = File(context.cacheDir, "sifa_photo_${System.currentTimeMillis()}.jpg")
+                                        val outputOptions = androidx.camera.core.ImageCapture.OutputFileOptions.Builder(photoFile).build()
+                                        cameraController.takePicture(
+                                            outputOptions,
+                                            mainExecutor,
+                                            object : androidx.camera.core.ImageCapture.OnImageSavedCallback {
+                                                override fun onImageSaved(output: androidx.camera.core.ImageCapture.OutputFileResults) {
+                                                    val permanentPath = com.sifa.sifa_go.core.utils.ImageUtils.compressImage(context, photoFile)
+                                                    if (photoFile.exists()) { photoFile.delete() }
+                                                    sifaViewModel.evidencePhotoPaths.add(permanentPath)
+                                                    isTakingEvidencePhoto = false
+                                                }
+                                                override fun onError(exception: androidx.camera.core.ImageCaptureException) {
+                                                    Log.e("AppNavigation", "Error al tomar la foto de evidencia", exception)
+                                                }
+                                            }
+                                        )
+                                    },
+                                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp),
+                                    icon = { Icon(androidx.compose.material.icons.Icons.Filled.CameraAlt, contentDescription = null) },
+                                    text = { Text("CAPTURAR EVIDENCIA") }
+                                )
+                            }
+                        }
+
+                        LaunchedEffect(coreViewModel.submitSuccess) {
+                            if (coreViewModel.submitSuccess) {
+                                tabsNavController.navigate("fiscalizacion/exito")
+                            }
+                        }
+                    }
+                }
+
+                composable(
+                    "fiscalizacion/exito",
+                    enterTransition = { fadeIn(tween(250)) },
+                    exitTransition = { fadeOut(tween(200)) }
+                ) {
+                    TicketSuccessScreen(
+                        onAnimationFinished = {
+                            sifaViewModel.clearProcess()
+                            coreViewModel.clearData()
+                            tabsNavController.navigate("home") {
+                                popUpTo("home") { inclusive = true }
+                            }
+                        }
+                    )
+                }
             }
 
             composable(
