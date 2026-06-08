@@ -80,6 +80,9 @@ fun MainLayout(
     username: String = "",
     onBackClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
+    onHelp: () -> Unit = {},
+    onCredits: () -> Unit = {},
+    onLogout: () -> Unit = {},
     currentRoute: String = "scan",
     onNavigate: (String) -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
@@ -123,7 +126,7 @@ fun MainLayout(
             TopAppBar(
                 title = {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -133,37 +136,48 @@ fun MainLayout(
                             color = MaterialTheme.colorScheme.primary
                         )
                         if (username.isNotBlank()) {
-                            val user = username.substringBefore("@")
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surface,
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                                tonalElevation = 2.dp
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(end = 2.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                val user = username.substringBefore("@")
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                    tonalElevation = 2.dp
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .graphicsLayer(scaleX = dotScale, scaleY = dotScale)
-                                            .background(Color(0xFF4CAF50), CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Icon(
-                                        Icons.Filled.Person,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = user,
-                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(start = 8.dp, end = 6.dp, top = 4.dp, bottom = 4.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .graphicsLayer(scaleX = dotScale, scaleY = dotScale)
+                                                .background(Color(0xFF4CAF50), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Icon(
+                                            Icons.Filled.Person,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = user,
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
+                                GlobalMenu(
+                                    showLogout = true,
+                                    onHelp = onHelp,
+                                    onCredits = onCredits,
+                                    onLogout = onLogout
+                                )
                             }
                         }
                     }

@@ -212,7 +212,9 @@ fun AppNavigation() {
                             // Limpiamos absolutamente todo el historial de pantallas para que no pueda volver con el botón "Atrás"
                             popUpTo(0) { inclusive = true }
                         }
-                    }
+                    },
+                    onHelp = { rootNavController.navigate("help") },
+                    onCredits = { rootNavController.navigate("credits") }
                 )
             }
 
@@ -270,7 +272,9 @@ fun MainAppNavigation(
     sifaViewModel: SifaViewModel = viewModel(),
     coreViewModel: CoreViewModel = viewModel(),
     gpsStatus: GpsStatus = GpsStatus.Available,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onHelp: () -> Unit = {},
+    onCredits: () -> Unit = {}
 ) {
     // ENRUTADOR DE PESTAÑAS: Maneja las vistas DENTRO del MainLayout
     val tabsNavController = rememberNavController()
@@ -316,7 +320,10 @@ fun MainAppNavigation(
             }
         },
         onBackClick = { tabsNavController.popBackStack() },
-        onProfileClick = { tabsNavController.navigate("profile") }
+        onProfileClick = { tabsNavController.navigate("profile") },
+        onHelp = onHelp,
+        onCredits = onCredits,
+        onLogout = onLogout
     ) { paddingValues ->
 
         // El NavHost interno que dibuja las vistas respetando los márgenes del MainLayout
