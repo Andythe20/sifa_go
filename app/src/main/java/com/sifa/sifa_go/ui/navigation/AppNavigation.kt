@@ -52,6 +52,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.foundation.background
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import java.io.File
@@ -388,15 +389,31 @@ fun MainAppNavigation(
                     enterTransition = { fadeIn(tween(250)) },
                     exitTransition = { fadeOut(tween(200)) }
                 ) {
-                    VehicleInfoScreen(
-                        vehicleData = coreViewModel.vehicleData!!,
-                        onIssueFineClick = { tabsNavController.navigate("fiscalizacion/formulario") },
-                        onNewScanClick = {
-                            sifaViewModel.clearProcess()
-                            coreViewModel.clearData()
-                            tabsNavController.popBackStack("fiscalizacion/camara", false)
+                    if (coreViewModel.vehicleData != null) {
+                        VehicleInfoScreen(
+                            vehicleData = coreViewModel.vehicleData!!,
+                            onIssueFineClick = { tabsNavController.navigate("fiscalizacion/formulario") },
+                            onNewScanClick = {
+                                sifaViewModel.clearProcess()
+                                coreViewModel.clearData()
+                                tabsNavController.popBackStack("fiscalizacion/camara", false)
+                            }
+                        )
+                    } else {
+                        // Si por alguna razón llegamos aquí y no hay datos, mostramos un cargando
+                        // o volvemos atrás. Dado que fetchVehicleInfo es asíncrono, esto puede pasar
+                        // si la navegación ocurre antes de que la API responda.
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
                         }
-                    )
+                        
+                        // Si hay un mensaje de error, significa que la carga falló
+                        LaunchedEffect(coreViewModel.errorMessage) {
+                            if (coreViewModel.errorMessage != null) {
+                                tabsNavController.popBackStack()
+                            }
+                        }
+                    }
                 }
 
                 composable(
