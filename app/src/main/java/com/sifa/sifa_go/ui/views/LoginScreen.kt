@@ -21,19 +21,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,9 +51,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.ui.focus.FocusDirection
+
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -65,6 +60,7 @@ import com.sifa.sifa_go.R
 import com.sifa.sifa_go.core.utils.getAppVersionInfo
 import com.sifa.sifa_go.core.network.ServerConfig
 import com.sifa.sifa_go.core.utils.vibrateShort
+import com.sifa.sifa_go.ui.components.GlobalMenu
 import com.sifa.sifa_go.viewmodel.AuthViewModel
 import androidx.compose.ui.platform.LocalContext
 
@@ -86,9 +82,6 @@ fun LoginScreen(
     // estados para guardar y mostrar mensajes de errores
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
-
-    // Estado para controlar el menú desplegable
-    var menuExpanded by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -293,45 +286,17 @@ fun LoginScreen(
             }
 
         }
-        // ── Botón ⋮ anclado en la esquina superior derecha
+
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .statusBarsPadding()
-
-            //.padding(top = 32.dp, end = 8.dp)
         ) {
-            IconButton(onClick = { menuExpanded = true }) {
-                Icon(
-                    imageVector = Icons.Filled.MoreVert,
-                    contentDescription = "Más opciones",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            DropdownMenu(
-                expanded = menuExpanded, onDismissRequest = { menuExpanded = false },
-                modifier = Modifier.background(MaterialTheme.colorScheme.background)
-            ) {
-
-                DropdownMenuItem(text = { Text("Ayuda") }, leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.HelpOutline, contentDescription = null
-                    )
-                }, onClick = {
-                    menuExpanded = false
-                    onNavigateToHelp()
-                })
-
-                DropdownMenuItem(text = { Text("Créditos") }, leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.Info, contentDescription = null
-                    )
-                }, onClick = {
-                    menuExpanded = false
-                    onNavigateToCredits()
-                })
-            }
+            GlobalMenu(
+                showLogout = false,
+                onHelp = onNavigateToHelp,
+                onCredits = onNavigateToCredits
+            )
         }
     }
 }
