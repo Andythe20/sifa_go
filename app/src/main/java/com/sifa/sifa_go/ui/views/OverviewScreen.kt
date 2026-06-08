@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sifa.sifa_go.ui.components.ErrorView
 import com.sifa.sifa_go.viewmodel.SifaViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -138,30 +139,10 @@ fun OverviewScreen(sifaViewModel: SifaViewModel) {
                 }
 
                 sifaViewModel.historyError != null -> {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = sifaViewModel.historyError ?: "Error desconocido",
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            OutlinedButton(
-                                onClick = { sifaViewModel.loadInfractionsHistory(today) }
-                            ) {
-                                Icon(Icons.Filled.Refresh, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Reintentar")
-                            }
-                        }
-                    }
+                    ErrorView(
+                        error = sifaViewModel.historyError,
+                        onRetry = { sifaViewModel.loadInfractionsHistory(today) }
+                    )
                 }
 
                 else -> {
