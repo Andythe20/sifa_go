@@ -137,6 +137,8 @@ fun MainLayout(
                             color = MaterialTheme.colorScheme.primary
                         )
                         if (username.isNotBlank()) {
+                            // para el username obtenemos solo el texto antes del '@'
+                            val user = username.substringBefore("@")
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = MaterialTheme.colorScheme.surface,
@@ -162,7 +164,7 @@ fun MainLayout(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = username,
+                                        text = user,
                                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -248,7 +250,7 @@ fun MainLayoutPreview() {
     SIFA_GOTheme {
         MainLayout(
             title = "SIFA GO",
-            username = "JUAN PEREZ",
+            username = "andresortegasuazooo.fis@gmail.com",
             currentRoute = "home",
             onNavigate = {}
         ) {
