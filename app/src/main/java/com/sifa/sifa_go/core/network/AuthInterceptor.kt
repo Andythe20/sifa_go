@@ -73,9 +73,9 @@ class AuthInterceptor(
 
         val response = chain.proceed(authRequest)
 
-        if (response.code == 401) {
+        if (response.code == 401 || response.code == 403) {
             response.close()
-            Log.d(TAG, "Received 401, attempting token refresh")
+            Log.d(TAG, "Received ${response.code}, attempting token refresh")
 
             synchronized(this) {
                 val currentToken = sessionManager.getToken()

@@ -1,12 +1,12 @@
 package com.sifa.sifa_go.ui.navigation
 
-import android.widget.Toast
 import androidx.camera.view.LifecycleCameraController
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +33,7 @@ import com.sifa.sifa_go.core.network.rememberGpsStatus
 import com.sifa.sifa_go.core.network.rememberNetworkStatus
 import com.sifa.sifa_go.core.network.AuthRetrofitClient
 import com.sifa.sifa_go.core.utils.BiometricHelper
+import com.sifa.sifa_go.core.network.ServerConfig
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.core.utils.vibrateShort
 import com.sifa.sifa_go.data.model.RefreshTokenRequest
@@ -54,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import java.io.File
 import android.util.Log
@@ -85,30 +87,36 @@ fun AppNavigation() {
     val networkStatus = rememberNetworkStatus()
     val gpsStatus = rememberGpsStatus()
 
-    // Observa eventos de sesión expirada y redirige al login
+    var showSessionExpiredOverlay by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         SessionManager.sessionExpiredEvent.collect {
-            Toast.makeText(
-                context,
-                "Sesión expirada. Por favor, ingresa de nuevo.",
-                Toast.LENGTH_LONG
-            ).show()
             context.vibrateShort()
+            showSessionExpiredOverlay = true
+            kotlinx.coroutines.delay(ServerConfig.SESSION_EXPIRED_DELAY_MS)
             rootNavController.navigate("login") {
                 popUpTo(0) { inclusive = true }
             }
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        NetworkBanner(
-            networkStatus = networkStatus.value,
-            gpsStatus = gpsStatus.value,
-            modifier = Modifier.fillMaxWidth()
-        )
+    val currentRoute = rootNavController.currentBackStackEntryAsState()?.value?.destination?.route
+    LaunchedEffect(currentRoute) {
+        if (currentRoute == "login") {
+            showSessionExpiredOverlay = false
+        }
+    }
 
-        // Debe empezar en check_auth ya que ahí se revisa si hay una sesión activa
-        NavHost(navController = rootNavController, startDestination = "check_auth") {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            NetworkBanner(
+                networkStatus = networkStatus.value,
+                gpsStatus = gpsStatus.value,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Debe empezar en check_auth ya que ahí se revisa si hay una sesión activa
+            NavHost(navController = rootNavController, startDestination = "check_auth") {
 
             // RUTA DE DECISIÓN (Invisible para el usuario)
             composable("check_auth") {
@@ -223,6 +231,37 @@ fun AppNavigation() {
             }
         }
     }
+
+    if (showSessionExpiredOverlay) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(48.dp)
+                )
+                Text(
+                    text = "Sesión expirada",
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "Redirigiendo al inicio de sesión...",
+                    color = Color.White.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+    }
+}
+
 }
 
 @Composable
