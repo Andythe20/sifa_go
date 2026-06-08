@@ -309,7 +309,8 @@ fun MainAppNavigation(
                         coreViewModel.clearData()
                         sifaViewModel.isManualEntry = true
                         sifaViewModel.detectedPlate = "" // Limpiamos residuos
-                        tabsNavController.navigate("scan") { launchSingleTop = true }
+                        sifaViewModel.startGpsCalibration() // Iniciamos GPS para el ingreso manual
+                        tabsNavController.navigate("fiscalizacion/resultado") { launchSingleTop = true }
                     }
                 )
             }
@@ -379,7 +380,9 @@ fun MainAppNavigation(
                             // Al re-tomar foto desde resultado, limpiamos solo la foto actual
                             // pero mantenemos el modo (manual o automático)
                             sifaViewModel.currentPhotoPath = null
-                            tabsNavController.popBackStack("fiscalizacion/camara", false)
+                            if (!tabsNavController.popBackStack("fiscalizacion/camara", false)) {
+                                tabsNavController.navigate("fiscalizacion/camara")
+                            }
                         }
                     )
                 }
