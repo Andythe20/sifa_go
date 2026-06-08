@@ -99,6 +99,9 @@ fun MainLayout(
 
     val isRootTab = bottomNavItems.any { it.route == currentRoute }
 
+    // las rutasa de fiscalizacion están nombradas con el prefijo fiscalizacion/
+    val isScanFlow = currentRoute.startsWith("fiscalizacion/") || currentRoute == "scan"
+
     // Heartbeat animation logic
     val heartbeatTrigger by presenceViewModel?.heartbeatTrigger?.collectAsState() ?: remember { mutableStateOf(0L) }
     val infiniteTransition = rememberInfiniteTransition(label = "breathing")
@@ -197,7 +200,7 @@ fun MainLayout(
                 modifier = Modifier.height(80.dp)
             ) {
                 bottomNavItems.forEach { item ->
-                    val isSelected = currentRoute == item.route
+                    val isSelected = if (item.route == "scan") isScanFlow else currentRoute == item.route
                     
                     val scale by animateFloatAsState(
                         targetValue = if (isSelected) 1.2f else 1.0f,
