@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
@@ -61,6 +63,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sifa.sifa_go.R
 import com.sifa.sifa_go.core.utils.getAppVersionInfo
+import com.sifa.sifa_go.core.network.ServerConfig
 import com.sifa.sifa_go.core.utils.vibrateShort
 import com.sifa.sifa_go.viewmodel.AuthViewModel
 import androidx.compose.ui.platform.LocalContext
@@ -93,6 +96,7 @@ fun LoginScreen(
     LaunchedEffect(authViewModel.isLoginSuccessful) {
         if (authViewModel.isLoginSuccessful) {
             context.vibrateShort()
+            kotlinx.coroutines.delay(ServerConfig.VIBRATE_SUCCESS_DELAY_MS)
             onLoginSuccess()
         }
     }
@@ -264,6 +268,12 @@ fun LoginScreen(
                             color = Color.White, modifier = Modifier.size(24.dp)
                         )
                     } else {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text("INGRESAR", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                 }
