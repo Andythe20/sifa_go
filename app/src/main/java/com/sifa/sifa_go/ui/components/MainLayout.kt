@@ -1,19 +1,16 @@
 package com.sifa.sifa_go.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,7 +21,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -59,12 +55,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -99,10 +94,8 @@ fun MainLayout(
 
     val isRootTab = bottomNavItems.any { it.route == currentRoute }
 
-    // las rutasa de fiscalizacion están nombradas con el prefijo fiscalizacion/
     val isScanFlow = currentRoute.startsWith("fiscalizacion/") || currentRoute == "scan"
 
-    // Heartbeat animation logic
     val heartbeatTrigger by presenceViewModel?.heartbeatTrigger?.collectAsState() ?: remember { mutableStateOf(0L) }
     val infiniteTransition = rememberInfiniteTransition(label = "breathing")
     val breathingScale by infiniteTransition.animateFloat(
@@ -140,7 +133,6 @@ fun MainLayout(
                             color = MaterialTheme.colorScheme.primary
                         )
                         if (username.isNotBlank()) {
-                            // para el username obtenemos solo el texto antes del '@'
                             val user = username.substringBefore("@")
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
@@ -196,45 +188,68 @@ fun MainLayout(
         bottomBar = {
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.background,
-                tonalElevation = 8.dp,
-                modifier = Modifier.height(80.dp)
+                tonalElevation = 8.dp
             ) {
-                bottomNavItems.forEach { item ->
+                for (item in bottomNavItems) {
                     val isSelected = if (item.route == "scan") isScanFlow else currentRoute == item.route
-                    
-                    val scale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.2f else 1.0f,
-                        animationSpec = tween(durationMillis = 300),
-                        label = "iconScale"
-                    )
 
                     NavigationBarItem(
                         selected = isSelected,
                         onClick = { onNavigate(item.route) },
                         icon = {
-                            Icon(
-                                imageVector = item.icon,
-                                contentDescription = item.title,
-                                modifier = Modifier.graphicsLayer(scaleX = scale, scaleY = scale)
-                            )
+                            if (isSelected) {
+                                val liftOffset by animateDpAsState(
+                                    targetValue = (-6).dp,
+                                    animationSpec = spring(
+                                        dampingRatio = 0.5f,
+                                        stiffness = 300f
+                                    ),
+                                    label = "liftOffset"
+                                )
+                                Surface(
+                                    modifier = Modifier.offset(y = liftOffset),
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                    tonalElevation = 2.dp
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = item.icon,
+                                            contentDescription = item.title,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Text(
+                                            text = item.title,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 0.sp,
+                                                fontSize = 9.sp
+                                            ),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            } else {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = item.title,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         },
-                        label = {
-                            Text(
-                                text = item.title,
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    letterSpacing = 0.sp
-                                ),
-                                maxLines = 1
-                            )
-                        },
+                        label = null,
                         alwaysShowLabel = false,
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.surface,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            indicatorColor = Color.Transparent
                         )
                     )
                 }

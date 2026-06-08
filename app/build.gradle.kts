@@ -45,6 +45,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.compose.foundation)
     // Librería para que java.time.LocalDateTime funcione en minSdk 24
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 
