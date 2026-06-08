@@ -44,6 +44,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -54,6 +55,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sifa.sifa_go.data.model.UserResponse
 import com.sifa.sifa_go.ui.components.ErrorView
+import com.sifa.sifa_go.ui.components.LogoutConfirmationDialog
 import com.sifa.sifa_go.viewmodel.ProfileViewModel
 
 @Composable
@@ -74,33 +76,14 @@ fun ProfileScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Cerrar Sesión") },
-            text = { Text("¿Estás seguro de que deseas cerrar sesión?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showLogoutDialog = false
-                        onLogout()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Text("Cerrar Sesión")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { showLogoutDialog = false }
-                ) {
-                    Text("Cancelar")
-                }
-            }
-        )
-    }
+    LogoutConfirmationDialog(
+        show = showLogoutDialog,
+        onConfirm = {
+            showLogoutDialog = false
+            onLogout()
+        },
+        onDismiss = { showLogoutDialog = false }
+    )
 
     Column(
         modifier = Modifier
@@ -202,7 +185,10 @@ private fun ProfileContent(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        StatusBadge(active = user.active)
+        StatusBadge(
+            active = user.active,
+            text = if (user.role == "USER_APP") "Fiscalizador" else (user.role ?: "")
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -236,19 +222,8 @@ private fun ProfileContent(
 
                 ProfileInfoRow(
                     icon = Icons.Filled.Person,
-                    label = "Nombre",
-                    value = user.name?: "No disponible"
-                )
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-
-                ProfileInfoRow(
-                    icon = Icons.Filled.Person,
-                    label = "Apellido",
-                    value = user.lastName?: "No disponible"
+                    label = "Nombre completo",
+                    value = "${user.name?.trim() ?: ""} ${user.lastName?.trim() ?: ""}".trim()
                 )
 
                 HorizontalDivider(
@@ -273,16 +248,6 @@ private fun ProfileContent(
                     value = user.phone?: "No disponible"
                 )
 
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-
-                ProfileInfoRow(
-                    icon = Icons.Filled.Shield,
-                    label = "Rol",
-                    value = if (user.role == "USER_APP") "Fiscalizador" else (user.role ?: "")
-                )
             }
         }
     }
@@ -323,22 +288,30 @@ private fun ProfileInfoRow(
 }
 
 @Composable
-private fun StatusBadge(active: Boolean) {
+private fun StatusBadge(active: Boolean, text: String) {
+    val iconTint = if (active) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(
-                if (active) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.errorContainer
-            )
+            .background(MaterialTheme.colorScheme.primaryContainer)
             .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
-        Text(
-            text = if (active) "Activo" else "Inactivo",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            color = if (active) MaterialTheme.colorScheme.onPrimaryContainer
-            else MaterialTheme.colorScheme.onErrorContainer
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Shield,
+                contentDescription = if (active) "Activo" else "Inactivo",
+                modifier = Modifier.size(14.dp),
+                tint = iconTint
+            )
+            Text(
+                text = text,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
     }
 }
