@@ -7,10 +7,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sifa.sifa_go.BuildConfig
 import com.sifa.sifa_go.core.network.AuthRetrofitClient
 import com.sifa.sifa_go.core.network.DeviceRetrofitClient
 import com.sifa.sifa_go.core.network.NetworkModule
 import com.sifa.sifa_go.core.utils.SessionManager
+import com.sifa.sifa_go.core.utils.getDeviceInfo
 import com.sifa.sifa_go.data.model.LoginRequest
 import com.sifa.sifa_go.domain.push.usecase.RegisterDeviceUseCase
 import com.sifa.sifa_go.exception.NetworkErrorHandler
@@ -95,9 +97,16 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun registerDevice() {
+        val appVersion = BuildConfig.VERSION_NAME
+        val deviceInfo = getDeviceInfo(getApplication())
         viewModelScope.launch {
-            registerDeviceUseCase()
-                .onSuccess { Log.d(TAG, "Device registered successfully") }
+            registerDeviceUseCase(
+                appVersion = appVersion,
+                deviceId = deviceInfo.deviceId,
+                deviceModel = deviceInfo.deviceModel,
+                manufacturer = deviceInfo.manufacturer
+            )
+                .onSuccess { Log.d(TAG, "Device registered successfully (v$appVersion)") }
                 .onFailure { Log.w(TAG, "Device registration failed: ${it.message}") }
         }
     }
