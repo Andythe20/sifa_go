@@ -9,7 +9,12 @@ class RegisterDeviceUseCase(
     private val tokenRepository: PushTokenRepository,
     private val deviceApi: DeviceApiService
 ) {
-    suspend operator fun invoke(): Result<Unit> {
+    suspend operator fun invoke(
+        appVersion: String? = null,
+        deviceId: String? = null,
+        deviceModel: String? = null,
+        manufacturer: String? = null
+    ): Result<Unit> {
         val pushToken = tokenRepository.getToken()
             ?: return Result.failure(IllegalStateException("FCM token not available yet"))
 
@@ -17,7 +22,11 @@ class RegisterDeviceUseCase(
             val response = deviceApi.registerDevice(
                 DeviceRegisterRequest(
                     token = pushToken.value,
-                    platform = "ANDROID"
+                    platform = "ANDROID",
+                    appVersion = appVersion,
+                    deviceId = deviceId,
+                    deviceModel = deviceModel,
+                    manufacturer = manufacturer
                 )
             )
             if (response.isSuccessful) {
