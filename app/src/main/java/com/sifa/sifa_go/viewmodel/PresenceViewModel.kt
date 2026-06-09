@@ -1,14 +1,14 @@
 package com.sifa.sifa_go.viewmodel
 
-import android.annotation.SuppressLint
 import android.content.Context
-import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sifa.sifa_go.core.network.CoreRetrofitClient
 import com.sifa.sifa_go.core.network.ServerConfig
+import com.sifa.sifa_go.core.utils.DeviceInfo
 import com.sifa.sifa_go.core.utils.LocationHelper
 import com.sifa.sifa_go.core.utils.SessionManager
+import com.sifa.sifa_go.core.utils.getDeviceInfo
 import com.sifa.sifa_go.data.model.FiscalizadorHeartbeatRequest
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import android.os.Build
 
 class PresenceViewModel : ViewModel() {
 
@@ -25,21 +24,18 @@ class PresenceViewModel : ViewModel() {
     private val _heartbeatTrigger = MutableStateFlow(0L)
     val heartbeatTrigger: StateFlow<Long> = _heartbeatTrigger.asStateFlow()
 
-    @SuppressLint("HardwareIds")
     fun startHeartbeatEngine(context: Context, sessionManager: SessionManager) {
         if (heartbeatJob?.isActive == true) return
 
-        val deviceId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "DESCONOCIDO"
-        val brand = Build.BRAND ?: "Desconocida"
-        val model = Build.MODEL ?: "Desconocido"
+        val deviceInfo = getDeviceInfo(context)
         val locationHelper = LocationHelper(context)
 
         heartbeatJob = viewModelScope.launch {
-            sendHeartbeat(locationHelper, sessionManager, deviceId, brand, model)
+            sendHeartbeat(locationHelper, sessionManager, deviceInfo)
 
             while (true) {
                 delay(ServerConfig.HEARTBEAT_INTERVAL_MS)
-                sendHeartbeat(locationHelper, sessionManager, deviceId, brand, model)
+                sendHeartbeat(locationHelper, sessionManager, deviceInfo)
             }
         }
     }
@@ -47,9 +43,7 @@ class PresenceViewModel : ViewModel() {
     private suspend fun sendHeartbeat(
         locationHelper: LocationHelper,
         sessionManager: SessionManager,
-        deviceId: String,
-        brand: String,
-        model: String
+        deviceInfo: DeviceInfo
     ) {
         try {
             if (sessionManager.getToken() == null) return
@@ -63,9 +57,9 @@ class PresenceViewModel : ViewModel() {
             val request = FiscalizadorHeartbeatRequest(
                 latitud = location.latitude,
                 longitud = location.longitude,
-                deviceId = deviceId,
-                marca = brand,
-                modelo = model,
+                deviceId = deviceInfo.deviceId,
+                marca = deviceInfo.manufacturer,
+                modelo = deviceInfo.deviceModel,
             )
 
             val response = CoreRetrofitClient.apiService.sendHeartbeat(request = request)
