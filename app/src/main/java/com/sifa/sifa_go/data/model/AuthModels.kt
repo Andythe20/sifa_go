@@ -43,6 +43,15 @@ data class UserResponse(
     val active: Boolean
 )
 
+data class ChangePasswordRequest(
+    val oldPassword: String,
+    val newPassword: String
+)
+
+data class ChangePasswordResponse(
+    val message: String
+)
+
 sealed class LoginResult {
     data class Success(val token: String, val email: String, val roles: List<String>) : LoginResult()
     data class Error(val code: Int, val message: String) : LoginResult()

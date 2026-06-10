@@ -1,5 +1,7 @@
 package com.sifa.sifa_go.core.network
 
+import com.sifa.sifa_go.data.model.ChangePasswordRequest
+import com.sifa.sifa_go.data.model.ChangePasswordResponse
 import com.sifa.sifa_go.data.model.LoginRequest
 import com.sifa.sifa_go.data.model.LoginResponse
 import com.sifa.sifa_go.data.model.RefreshTokenRequest
@@ -21,6 +23,11 @@ interface AuthApiService {
     suspend fun getUserByEmail(
         @Path("email") email: String
     ): Response<UserResponse>
+
+    @POST("auth/api/v1/change-password")
+    suspend fun changePassword(
+        @Body request: ChangePasswordRequest
+    ): Response<ChangePasswordResponse>
 }
 
 object AuthRetrofitClient {
