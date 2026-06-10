@@ -15,8 +15,10 @@ import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material3.*
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.*
@@ -142,6 +144,24 @@ fun TicketScreen(
                     text = "Vehículo: ${vehicleData.marca} ${vehicleData.modelo}",
                     color = MaterialTheme.colorScheme.primary
                 )
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(vehicleData.color.parseColor())
+                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), CircleShape)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = vehicleData.color,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
 
                 if (latitude != null && longitude != null) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -364,7 +384,19 @@ fun TicketScreen(
                 Spacer(modifier = Modifier.width(12.dp))
                 Text("PROCESANDO...")
             } else {
-                Text("CONFIRMAR Y EMITIR MULTA", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.Gavel,
+                        contentDescription = "Emitir multa",
+                        modifier = Modifier.size(18.dp),
+                        tint = Color.White
+                    )
+                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                    Text("CONFIRMAR Y EMITIR MULTA", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
 
@@ -420,7 +452,19 @@ fun TicketScreen(
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text("CANCELAR", color = if (isSubmitting) Color.Gray else MaterialTheme.colorScheme.primary)
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Filled.Cancel,
+                    contentDescription = "Cancelar",
+                    modifier = Modifier.size(18.dp),
+                    tint = if (isSubmitting) Color.Gray else MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                Text("CANCELAR", color = if (isSubmitting) Color.Gray else MaterialTheme.colorScheme.primary)
+            }
         }
     }
 }
@@ -563,6 +607,26 @@ private fun FullScreenPhotoViewer(
                 }
             }
         }
+    }
+}
+
+private fun String.parseColor(): Color {
+    return when (this.uppercase()) {
+        "BLANCO" -> Color.White
+        "NEGRO" -> Color.Black
+        "ROJO" -> Color(0xFFE53935)
+        "AZUL" -> Color(0xFF1E88E5)
+        "VERDE" -> Color(0xFF43A047)
+        "AMARILLO" -> Color(0xFFFDD835)
+        "GRIS" -> Color(0xFF757575)
+        "PLATA" -> Color(0xFFBDBDBD)
+        "DORADO" -> Color(0xFFFFB300)
+        "NARANJA" -> Color(0xFFFB8C00)
+        "MARRÓN" -> Color(0xFF6D4C41)
+        "BEIGE" -> Color(0xFFD7CCC8)
+        "CELESTE" -> Color(0xFF29B6F6)
+        "VINO" -> Color(0xFF7B1FA2)
+        else -> Color(0xFF757575)
     }
 }
 
