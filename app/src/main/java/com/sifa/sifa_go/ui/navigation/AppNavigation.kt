@@ -377,16 +377,22 @@ fun MainAppNavigation(
                         coreViewModel.clearData()
                     }
 
+                    var waitingForAiResponse by remember { mutableStateOf(false) }
+
                     if (sifaViewModel.currentPhotoPath != null) {
                         PreviewScreen(
                             photoPath = sifaViewModel.currentPhotoPath!!,
+                            isProcessing = sifaViewModel.isLoading,
                             onRetakePhoto = {
                                 sifaViewModel.removeEvidencePhoto(sifaViewModel.currentPhotoPath!!)
                                 sifaViewModel.currentPhotoPath = null
+                                waitingForAiResponse = false
                             },
                             onSendPhoto = { finalPath ->
-                                sifaViewModel.uploadImageToBackend(finalPath)
-                                tabsNavController.navigate("fiscalizacion/resultado")
+                                if (!waitingForAiResponse) {
+                                    sifaViewModel.uploadImageToBackend(finalPath)
+                                    waitingForAiResponse = true
+                                }
                             }
                         )
                     } else {
@@ -404,6 +410,13 @@ fun MainAppNavigation(
                             }
                         )
                     }
+
+                    // Esperar a que la IA termine de procesar antes de navegar al resultado
+                    LaunchedEffect(waitingForAiResponse, sifaViewModel.isLoading) {
+                        if (waitingForAiResponse && !sifaViewModel.isLoading) {
+                            tabsNavController.navigate("fiscalizacion/resultado")
+                        }
+                    }
                 }
 
                 composable(
@@ -411,26 +424,36 @@ fun MainAppNavigation(
                     enterTransition = { fadeIn(tween(250)) },
                     exitTransition = { fadeOut(tween(200)) }
                 ) {
+                    var isConsulting by remember { mutableStateOf(false) }
+
                     PlateResultScreen(
                         initialPlate = sifaViewModel.detectedPlate,
                         errorMessage = coreViewModel.errorMessage ?: sifaViewModel.detectionError,
-                        isLoading = coreViewModel.isLoading,
+                        isLoading = coreViewModel.isLoading || isConsulting,
                         isManualEntry = sifaViewModel.isManualEntry,
                         onConsultClick = { finalPlate ->
                             sifaViewModel.detectedPlate = finalPlate
                             sifaViewModel.detectionError = null
                             coreViewModel.fetchVehicleInfo(finalPlate)
-                            tabsNavController.navigate("fiscalizacion/info_vehiculo")
+                            isConsulting = true
                         },
                         onRetakePhoto = {
-                            // Al re-tomar foto desde resultado, limpiamos solo la foto actual
-                            // pero mantenemos el modo (manual o automático)
                             sifaViewModel.currentPhotoPath = null
+                            isConsulting = false
                             if (!tabsNavController.popBackStack("fiscalizacion/camara", false)) {
                                 tabsNavController.navigate("fiscalizacion/camara")
                             }
                         }
                     )
+
+                    LaunchedEffect(isConsulting, coreViewModel.isLoading) {
+                        if (isConsulting && !coreViewModel.isLoading) {
+                            isConsulting = false
+                            if (coreViewModel.vehicleData != null) {
+                                tabsNavController.navigate("fiscalizacion/info_vehiculo")
+                            }
+                        }
+                    }
                 }
 
                 composable(
