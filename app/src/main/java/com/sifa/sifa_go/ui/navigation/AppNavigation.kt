@@ -67,6 +67,7 @@ import com.sifa.sifa_go.viewmodel.SifaViewModel
 import com.sifa.sifa_go.R
 import com.sifa.sifa_go.ui.views.CreditsScreen
 import com.sifa.sifa_go.ui.views.HelpScreen
+import com.sifa.sifa_go.ui.views.ChangePasswordScreen
 import com.sifa.sifa_go.ui.views.HistoryScreen
 import com.sifa.sifa_go.ui.views.HomeScreen
 import com.sifa.sifa_go.ui.views.ProfileScreen
@@ -325,6 +326,7 @@ fun MainAppNavigation(
         onCredits = onCredits,
         onLogout = onLogout
     ) { paddingValues ->
+        val onChangePassword = { tabsNavController.navigate("change_password") }
 
         // El NavHost interno que dibuja las vistas respetando los márgenes del MainLayout
         NavHost(
@@ -616,7 +618,18 @@ fun MainAppNavigation(
                 exitTransition = { fadeOut(tween(200)) }
             ) {
                 ProfileScreen(
-                    onLogout = onLogout
+                    onLogout = onLogout,
+                    onChangePassword = onChangePassword
+                )
+            }
+
+            composable(
+                "change_password",
+                enterTransition = { slideInVertically(tween(350)) { it / 6 } + fadeIn(tween(250)) },
+                exitTransition = { fadeOut(tween(200)) }
+            ) {
+                ChangePasswordScreen(
+                    onSuccess = onLogout
                 )
             }
         }
