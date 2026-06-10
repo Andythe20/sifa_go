@@ -26,7 +26,12 @@ fun getAppVersionInfo(context: Context): AppVersionInfo {
         )
         AppVersionInfo(
             versionName = packageInfo.versionName ?: "N/A",
-            versionCode = packageInfo.longVersionCode,
+            versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.versionCode.toLong()
+            },
             buildType = if (packageInfo.versionName?.contains("SNAPSHOT") == true) "DEBUG" else "RELEASE"
         )
     } catch (e: PackageManager.NameNotFoundException) {
