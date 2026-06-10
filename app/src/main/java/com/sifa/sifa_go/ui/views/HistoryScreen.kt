@@ -584,7 +584,7 @@ private fun ExpandChevron(expanded: Boolean) {
 private fun formatTimestamp(timestamp: String): String {
     return try {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.getDefault())
-        val outputFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val outputFormat = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
         val date = inputFormat.parse(timestamp)
         date?.let { outputFormat.format(it) } ?: timestamp
     } catch (e: Exception) {

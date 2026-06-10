@@ -245,7 +245,9 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
                 if (response.isSuccessful) {
                     val pageResponse = response.body()
 
-                    infractionsHistory = pageResponse?.content ?: emptyList()
+                    infractionsHistory = (pageResponse?.content ?: emptyList())
+                        .filter { it.id != null }
+                        .sortedByDescending { it.id!!.toIntOrNull() ?: 0 }
                     currentPage = pageResponse?.pageNumber ?: 0
                     totalPages = pageResponse?.totalPages ?: 0
                     totalElements = pageResponse?.totalElements ?: 0
