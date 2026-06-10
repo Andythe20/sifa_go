@@ -10,8 +10,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -29,6 +36,7 @@ import java.io.File
 @Composable
 fun PreviewScreen(
     photoPath: String,
+    isProcessing: Boolean = false,
     onRetakePhoto: () -> Unit,
     onSendPhoto: (String) -> Unit
 ) {
@@ -37,63 +45,100 @@ fun PreviewScreen(
         colors = listOf(Color(0xFF0288D1), Color(0xFF01579B)) // Ejemplo de azul
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        // Texto de instrucción
-        Text(
-            text = "Revisa que la captura sea correcta",
-            modifier = Modifier.padding(top = 16.dp),
-            style = MaterialTheme.typography.titleMedium)
-
-        // Imagen previsualizada usando Coil
-        AsyncImage(
-            model = File(photoPath),
-            contentDescription = "Previsualización de patente",
+    if (isProcessing) {
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f) // Ocupa el espacio disponible
-                .padding(vertical = 16.dp),
-            contentScale = ContentScale.Fit
-        )
-
-        // Botones de acción
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                .fillMaxSize()
+                .background(Color.White),
+            contentAlignment = Alignment.Center
         ) {
-            OutlinedButton(
-                onClick = onRetakePhoto,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(50.dp),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp) // Más cuadrado
-            ) {
-                Text("Reintentar")
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(56.dp),
+                    strokeWidth = 5.dp
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = "Procesando imagen...",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
+        }
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Revisa que la captura sea correcta",
+                modifier = Modifier.padding(top = 16.dp),
+                style = MaterialTheme.typography.titleMedium)
 
-            Button(
-                onClick = { onSendPhoto(photoPath) },
+            AsyncImage(
+                model = File(photoPath),
+                contentDescription = "Previsualización de patente",
                 modifier = Modifier
+                    .fillMaxWidth()
                     .weight(1f)
-                    .height(50.dp),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues()
+                    .padding(vertical = 16.dp),
+                contentScale = ContentScale.Fit
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Box(
+                OutlinedButton(
+                    onClick = onRetakePhoto,
+                    enabled = !isProcessing,
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(gradientBrush),
-                    contentAlignment = Alignment.Center
+                        .weight(1f)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Procesar", color = Color.White, fontWeight = FontWeight.Bold)
+                    Icon(
+                        Icons.Filled.Refresh,
+                        contentDescription = "Reintentar",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                    Text("Reintentar")
+                }
+
+                Button(
+                    onClick = { onSendPhoto(photoPath) },
+                    enabled = !isProcessing,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(gradientBrush),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.ArrowForward,
+                            contentDescription = "Procesar",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                        Text("Procesar", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
