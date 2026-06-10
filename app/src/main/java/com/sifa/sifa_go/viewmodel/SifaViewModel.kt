@@ -202,7 +202,7 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
 
                 if (plateResult != null && plateResult.success && !plateResult.plate.isNullOrEmpty()) {
                     // IA exitosa
-                    detectedPlate = plateResult.plate
+                    detectedPlate = plateResult.plate.trim()
                 } else {
                     // La IA respondió, pero no encontró ninguna patente legible en la foto
                     detectionError = "No se logró leer la patente en la fotografía."

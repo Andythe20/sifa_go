@@ -2,16 +2,22 @@ package com.sifa.sifa_go.ui.views
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +50,7 @@ fun PlateResultScreen(
     onRetakePhoto: () -> Unit
 ) {
     // Estado local para permitir al usuario modificar la patente
-    var currentPlate by remember { mutableStateOf(initialPlate ?: "") }
+    var currentPlate by remember { mutableStateOf(initialPlate?.trim() ?: "") }
 
     Column(
         modifier = Modifier
@@ -119,7 +125,6 @@ fun PlateResultScreen(
             OutlinedTextField(
                 value = currentPlate,
                 onValueChange = {
-                    // Limitamos a 6 caracteres (ej: GKSB78) y forzamos mayúsculas
                     if (it.length <= 6) currentPlate = it.uppercase()
                 },
                 singleLine = true,
@@ -144,19 +149,31 @@ fun PlateResultScreen(
         Column(modifier = Modifier.fillMaxWidth()) {
             Button(
                 onClick = {
-                    if (currentPlate.length >= 5) { // Validación mínima
+                    if (currentPlate.length >= 5) {
                         onConsultClick(currentPlate)
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(55.dp),
-                enabled = currentPlate.length >= 5 && !isLoading // Desactiva el botón si está vacío o incompleto o si está cargando
+                shape = RoundedCornerShape(8.dp),
+                enabled = currentPlate.length >= 5 && !isLoading
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.padding(2.dp))
                 } else {
-                    Text("CONSULTAR DATOS", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.Search,
+                            contentDescription = "Consultar",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                        Text("CONSULTAR DATOS", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 
@@ -167,9 +184,21 @@ fun PlateResultScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                enabled = !isLoading // Desactiva el botón si está cargando
+                shape = RoundedCornerShape(8.dp),
+                enabled = !isLoading
             ) {
-                Text(if (isManualEntry) "Volver a la cámara" else "Tomar otra fotografía")
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.CameraAlt,
+                        contentDescription = "Tomar foto",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                    Text(if (isManualEntry) "Volver a la cámara" else "Tomar otra fotografía")
+                }
             }
         }
     }
