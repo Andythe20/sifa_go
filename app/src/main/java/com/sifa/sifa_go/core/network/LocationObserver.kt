@@ -45,7 +45,11 @@ fun Context.getGpsStatus(): Flow<GpsStatus> = callbackFlow {
         }
     }
 
-    registerReceiver(receiver, IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION))
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        registerReceiver(receiver, IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION), Context.RECEIVER_NOT_EXPORTED)
+    } else {
+        registerReceiver(receiver, IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION))
+    }
 
     // Estado inicial
     sendCurrentStatus()

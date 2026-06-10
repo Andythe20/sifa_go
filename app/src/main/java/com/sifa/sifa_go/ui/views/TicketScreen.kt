@@ -146,22 +146,12 @@ fun TicketScreen(
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(14.dp)
-                            .clip(CircleShape)
-                            .background(vehicleData.color.parseColor())
-                            .border(1.dp, Color.Gray.copy(alpha = 0.3f), CircleShape)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = vehicleData.color,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+                Text(
+                    text = vehicleData.color,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
 
                 if (latitude != null && longitude != null) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -607,26 +597,6 @@ private fun FullScreenPhotoViewer(
                 }
             }
         }
-    }
-}
-
-private fun String.parseColor(): Color {
-    return when (this.uppercase()) {
-        "BLANCO" -> Color.White
-        "NEGRO" -> Color.Black
-        "ROJO" -> Color(0xFFE53935)
-        "AZUL" -> Color(0xFF1E88E5)
-        "VERDE" -> Color(0xFF43A047)
-        "AMARILLO" -> Color(0xFFFDD835)
-        "GRIS" -> Color(0xFF757575)
-        "PLATA" -> Color(0xFFBDBDBD)
-        "DORADO" -> Color(0xFFFFB300)
-        "NARANJA" -> Color(0xFFFB8C00)
-        "MARRÓN" -> Color(0xFF6D4C41)
-        "BEIGE" -> Color(0xFFD7CCC8)
-        "CELESTE" -> Color(0xFF29B6F6)
-        "VINO" -> Color(0xFF7B1FA2)
-        else -> Color(0xFF757575)
     }
 }
 
