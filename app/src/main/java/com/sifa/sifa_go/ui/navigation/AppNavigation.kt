@@ -63,6 +63,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.graphics.Color
 import com.sifa.sifa_go.ui.views.LoginScreen
+import com.sifa.sifa_go.ui.views.RecoveryScreen
 import com.sifa.sifa_go.viewmodel.SifaViewModel
 import com.sifa.sifa_go.R
 import com.sifa.sifa_go.ui.views.CreditsScreen
@@ -183,6 +184,9 @@ fun AppNavigation() {
                             popUpTo("login") { inclusive = true }
                         }
                     },
+                    onNavigateToRecovery = {
+                        rootNavController.navigate("recovery")
+                    },
                     onNavigateToCredits = {
                         rootNavController.navigate("credits")
                     },
@@ -192,7 +196,16 @@ fun AppNavigation() {
                 )
             }
 
-            // RUTA RAÍZ 2: El contenedor de toda tu aplicación principal
+            // RUTA RAÍZ 2: Recuperación de contraseña
+            composable("recovery") {
+                RecoveryScreen(
+                    onNavigateToLogin = {
+                        rootNavController.popBackStack("login", false)
+                    }
+                )
+            }
+
+            // RUTA RAÍZ 3: El contenedor de toda tu aplicación principal
             composable("main_app") {
                 val context = LocalContext.current
 
@@ -219,14 +232,14 @@ fun AppNavigation() {
                 )
             }
 
-            // RUTA RAÍZ 3: Pantalla de créditos (accesible desde el menú lateral)
+            // RUTA RAÍZ 4: Pantalla de créditos (accesible desde el menú lateral)
             composable("credits") {
                 CreditsScreen(
                     onBack = { rootNavController.popBackStack() }
                 )
             }
 
-            // RUTA RAÍZ 4: Pantalla de ayuda (accesible desde el menú lateral)
+            // RUTA RAÍZ 5: Pantalla de ayuda (accesible desde el menú lateral)
             composable("help") {
                 HelpScreen(
                     onBack = { rootNavController.popBackStack() }

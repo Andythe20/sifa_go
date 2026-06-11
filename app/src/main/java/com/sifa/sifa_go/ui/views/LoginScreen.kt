@@ -35,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -68,6 +69,7 @@ import androidx.compose.ui.platform.LocalContext
 fun LoginScreen(
     authViewModel: AuthViewModel = viewModel(), // Inyectamos el ViewModel
     onLoginSuccess: () -> Unit,
+    onNavigateToRecovery: () -> Unit,
     onNavigateToCredits: () -> Unit,
     onNavigateToHelp: () -> Unit
 ) {
@@ -269,6 +271,21 @@ fun LoginScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("INGRESAR", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
+                }
+            }
+
+            item {
+                TextButton(
+                    onClick = onNavigateToRecovery,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    Text(
+                        text = "¿Olvidaste tu contraseña?",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
 
