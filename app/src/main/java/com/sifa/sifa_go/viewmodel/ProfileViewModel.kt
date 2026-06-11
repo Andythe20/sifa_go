@@ -7,16 +7,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sifa.sifa_go.core.network.AuthApiService
 import com.sifa.sifa_go.core.network.AuthRetrofitClient
-import com.sifa.sifa_go.core.network.NetworkModule
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.UserResponse
+import com.sifa.sifa_go.domain.repository.SessionRepository
 import com.sifa.sifa_go.exception.NetworkErrorHandler
 import kotlinx.coroutines.launch
 
-class ProfileViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val sessionManager = SessionManager(application)
+class ProfileViewModel(
+    application: Application,
+    private val sessionRepository: SessionRepository = SessionManager(application),
+    private val apiService: AuthApiService = AuthRetrofitClient.apiService
+) : AndroidViewModel(application) {
 
     var user by mutableStateOf<UserResponse?>(null)
         private set
@@ -28,12 +31,11 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         private set
 
     init {
-        NetworkModule.init(application)
         loadUserProfile()
     }
 
     fun loadUserProfile() {
-        val email = sessionManager.getUsername()
+        val email = sessionRepository.getUsername()
 
         if (email.isNullOrEmpty()) {
             error = "No se encontró el email del usuario"
@@ -46,7 +48,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
             try {
                 Log.d("ProfileVM", "Fetching profile for email: $email")
-                val response = AuthRetrofitClient.apiService.getUserByEmail(email)
+                val response = apiService.getUserByEmail(email)
 
                 if (response.isSuccessful) {
                     user = response.body()

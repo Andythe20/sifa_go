@@ -3,11 +3,12 @@ package com.sifa.sifa_go.core.utils
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.sifa.sifa_go.domain.repository.SessionRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
-class SessionManager(context: Context) {
+class SessionManager(context: Context) : SessionRepository {
 
     companion object {
         private const val PREFS_NAME = "sifa_session"
@@ -32,14 +33,13 @@ class SessionManager(context: Context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
 
-    // Guardar los datos de sesión
-    fun saveSession(
+    override fun saveSession(
         token: String,
         refreshToken: String,
         username: String,
         roles: List<String>,
-        expiry: Long? = null,
-        iat: Long? = null
+        expiry: Long?,
+        iat: Long?
     ) {
         prefs.edit().apply {
             putString(KEY_TOKEN, token)
@@ -52,39 +52,35 @@ class SessionManager(context: Context) {
         }
     }
 
-    // Obtener datos
-    fun getToken(): String? =
+    override fun getToken(): String? =
         prefs.getString(KEY_TOKEN, null)
 
-    fun getRefreshToken(): String? =
+    override fun getRefreshToken(): String? =
         prefs.getString(KEY_REFRESH_TOKEN, null)
 
-    fun getTokenExpiry(): Long =
+    override fun getTokenExpiry(): Long =
         prefs.getLong(KEY_TOKEN_EXPIRY, 0L)
 
-    fun getTokenIat(): Long =
+    override fun getTokenIat(): Long =
         prefs.getLong(KEY_TOKEN_IAT, 0L)
 
-    fun getUsername(): String? =
+    override fun getUsername(): String? =
         prefs.getString(KEY_USERNAME, null)
 
-    fun getRoles(): List<String> =
+    override fun getRoles(): List<String> =
         prefs.getStringSet(KEY_ROLES, emptySet())
             ?.toList()
             ?: emptyList()
 
-    // Validar rol USER_APP
-    fun hasUserAppRole(): Boolean {
+    override fun hasUserAppRole(): Boolean {
         return getRoles().contains("USER_APP")
     }
 
-    // Validar si la sesión es válida (token y refresh token no nulos, rol USER_APP presente)
-    fun hasValidSession(): Boolean {
+    override fun hasValidSession(): Boolean {
         return !getToken().isNullOrEmpty() && !getRefreshToken().isNullOrEmpty() && hasUserAppRole()
     }
 
-    // Borrar sesión (Para el botón de Cerrar Sesión)
-    fun logout() {
+    override fun logout() {
         prefs.edit { clear() }
     }
 }
