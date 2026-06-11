@@ -52,6 +52,20 @@ data class ChangePasswordResponse(
     val message: String
 )
 
+data class PasswordRecoveryRequest(
+    val email: String
+)
+
+data class PasswordResetRequest(
+    val email: String,
+    val code: String,
+    val newPassword: String
+)
+
+data class PasswordRecoveryResponse(
+    val message: String
+)
+
 sealed class LoginResult {
     data class Success(val token: String, val email: String, val roles: List<String>) : LoginResult()
     data class Error(val code: Int, val message: String) : LoginResult()

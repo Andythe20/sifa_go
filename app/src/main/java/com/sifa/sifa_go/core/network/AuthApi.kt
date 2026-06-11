@@ -4,6 +4,9 @@ import com.sifa.sifa_go.data.model.ChangePasswordRequest
 import com.sifa.sifa_go.data.model.ChangePasswordResponse
 import com.sifa.sifa_go.data.model.LoginRequest
 import com.sifa.sifa_go.data.model.LoginResponse
+import com.sifa.sifa_go.data.model.PasswordRecoveryRequest
+import com.sifa.sifa_go.data.model.PasswordRecoveryResponse
+import com.sifa.sifa_go.data.model.PasswordResetRequest
 import com.sifa.sifa_go.data.model.RefreshTokenRequest
 import com.sifa.sifa_go.data.model.UserResponse
 import retrofit2.Response
@@ -28,6 +31,16 @@ interface AuthApiService {
     suspend fun changePassword(
         @Body request: ChangePasswordRequest
     ): Response<ChangePasswordResponse>
+
+    @POST("auth/api/v1/recovery/request")
+    suspend fun requestRecovery(
+        @Body request: PasswordRecoveryRequest
+    ): Response<PasswordRecoveryResponse>
+
+    @POST("auth/api/v1/recovery/reset")
+    suspend fun resetPassword(
+        @Body request: PasswordResetRequest
+    ): Response<PasswordRecoveryResponse>
 }
 
 object AuthRetrofitClient {
