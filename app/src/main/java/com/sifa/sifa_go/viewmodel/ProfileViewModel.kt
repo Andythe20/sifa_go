@@ -16,7 +16,7 @@ import com.sifa.sifa_go.domain.repository.SessionRepository
 import com.sifa.sifa_go.exception.NetworkErrorHandler
 import kotlinx.coroutines.launch
 
-class ProfileViewModel(
+class ProfileViewModel @JvmOverloads constructor(
     application: Application,
     private val sessionRepository: SessionRepository = SessionManager(application),
     private val apiService: AuthApiService? = null
