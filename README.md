@@ -93,15 +93,6 @@ La aplicacion se comunica con un motor de IA (YOLO/PaddleOCR) para extraer texto
 
 ---
 
-## Proximos Pasos (Roadmap)
-
-- Conectar texto de patente reconocido con backend principal (Java/Spring Boot) para consultar datos del vehiculo y propietario.
-- Interfaz de validacion para que el fiscalizador decida si procede la infraccion.
-- Generacion automatica del formulario de multa prellenado con datos del vehiculo y evidencia fotografica.
-- Implementacion de base de datos local (Room) para modo offline y sincronizacion diferida.
-
----
-
 ## Documentacion Adicional
 
 - `gradle/libs.versions.toml` - Catalogo de versiones de dependencias.

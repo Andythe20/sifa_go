@@ -118,8 +118,8 @@ fun AppNavigation() {
             )
 
             // Debe empezar en check_auth ya que ahí se revisa si hay una sesión activa
-            NavHost(navController = rootNavController, startDestination = "check_auth") {
-
+            NavHost(navController = rootNavController, startDestination = "check_auth") {//TODO
+            //NavHost(navController = rootNavController, startDestination = "recovery") {
             // RUTA DE DECISIÓN (Invisible para el usuario)
             composable("check_auth") {
                 LaunchedEffect(Unit) {

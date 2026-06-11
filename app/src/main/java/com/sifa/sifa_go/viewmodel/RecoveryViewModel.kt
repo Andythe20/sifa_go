@@ -46,6 +46,10 @@ class RecoveryViewModel(application: Application) : AndroidViewModel(application
 
     init {
         NetworkModule.init(application)
+        // Skip step 1 — start at the code + password step for development //TODO
+//        email = "dev@test.com" // TODO
+//        recoveryRequestedAt = System.currentTimeMillis() //TODO
+//        step = 2 //TODO
     }
 
     val passwordRequirements: List<PasswordValidator.Requirement>
