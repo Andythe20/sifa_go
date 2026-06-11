@@ -15,9 +15,17 @@ interface SifaApiService {
     ): DetectionRootResponse // Esperamos una lista como respuesta
 }
 
-// 2. Configuramos el cliente con tu IP actual
 object RetrofitClient {
-    val apiService: SifaApiService by lazy {
-        NetworkModule.retrofit.create(SifaApiService::class.java)
+    private var _apiService: SifaApiService? = null
+
+    val apiService: SifaApiService
+        get() = _apiService ?: NetworkModule.retrofit.create(SifaApiService::class.java)
+
+    fun setApiService(service: SifaApiService) {
+        _apiService = service
+    }
+
+    fun resetApiService() {
+        _apiService = null
     }
 }

@@ -11,7 +11,16 @@ interface DeviceApiService {
 }
 
 object DeviceRetrofitClient {
-    val apiService: DeviceApiService by lazy {
-        NetworkModule.retrofit.create(DeviceApiService::class.java)
+    private var _apiService: DeviceApiService? = null
+
+    val apiService: DeviceApiService
+        get() = _apiService ?: NetworkModule.retrofit.create(DeviceApiService::class.java)
+
+    fun setApiService(service: DeviceApiService) {
+        _apiService = service
+    }
+
+    fun resetApiService() {
+        _apiService = null
     }
 }

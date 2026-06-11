@@ -54,7 +54,16 @@ interface CoreApiService {
 }
 
 object CoreRetrofitClient {
-    val apiService: CoreApiService by lazy {
-        NetworkModule.retrofit.create(CoreApiService::class.java)
+    private var _apiService: CoreApiService? = null
+
+    val apiService: CoreApiService
+        get() = _apiService ?: NetworkModule.retrofit.create(CoreApiService::class.java)
+
+    fun setApiService(service: CoreApiService) {
+        _apiService = service
+    }
+
+    fun resetApiService() {
+        _apiService = null
     }
 }

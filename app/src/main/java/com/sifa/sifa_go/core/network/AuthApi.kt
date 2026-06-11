@@ -44,7 +44,16 @@ interface AuthApiService {
 }
 
 object AuthRetrofitClient {
-    val apiService: AuthApiService by lazy {
-        NetworkModule.retrofit.create(AuthApiService::class.java)
+    private var _apiService: AuthApiService? = null
+
+    val apiService: AuthApiService
+        get() = _apiService ?: NetworkModule.retrofit.create(AuthApiService::class.java)
+
+    fun setApiService(service: AuthApiService) {
+        _apiService = service
+    }
+
+    fun resetApiService() {
+        _apiService = null
     }
 }
