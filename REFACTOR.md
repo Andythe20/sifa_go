@@ -2,11 +2,20 @@
 
 Este documento identifica componentes con alto acoplamiento que necesitan refactorización antes de poder escribir pruebas unitarias efectivas.
 
+---
+
+## Estado de la Refactorización
+
+- ✅ **Resuelto**: el cambio ya fue implementado.
+- ⬜ **Pendiente**:仍需 refactorización.
+
+---
+
 ## 1. ProfileViewModel
 
 **Archivo:** `app/src/main/java/com/sifa/sifa_go/viewmodel/ProfileViewModel.kt`
 
-**Problema:** Crea sus propias dependencias internamente:
+**Problema:** Creaba sus propias dependencias internamente:
 
 ```kotlin
 private val sessionManager = SessionManager(application)
@@ -17,21 +26,20 @@ init {
 }
 ```
 
-Esto imposibilita inyectar mocks/fakes de `SessionManager`, `AuthApiService` y `NetworkModule`.
-
-**Solución propuesta:** Inyección de dependencias por constructor:
+**Solución aplicada:** Inyección de dependencias por constructor:
 
 ```kotlin
 class ProfileViewModel(
     application: Application,
-    private val sessionManager: SessionManager = SessionManager(application),
+    private val sessionRepository: SessionRepository = SessionManager(application),
     private val apiService: AuthApiService = AuthRetrofitClient.apiService
-) : AndroidViewModel(application) {
-    // ...
-}
+) : AndroidViewModel(application)
 ```
 
-Esto permite pasar dependencias mockeadas desde el test sin modificar el comportamiento por defecto.
+- ✅ `NetworkModule.init(application)` eliminado del `init` (ya se llama desde `SifaApplication.onCreate()`).
+- ✅ `sessionManager` reemplazado por `sessionRepository: SessionRepository`.
+- ✅ `AuthRetrofitClient.apiService` reemplazado por `apiService: AuthApiService` inyectado.
+- ✅ Los tests pueden pasar mocks de `SessionRepository` y `AuthApiService`.
 
 ---
 
@@ -39,9 +47,29 @@ Esto permite pasar dependencias mockeadas desde el test sin modificar el comport
 
 **Archivo:** `app/src/main/java/com/sifa/sifa_go/core/utils/SessionManager.kt`
 
-**Problema:** Depende directamente de `SharedPreferences` de Android, creada con `context.getSharedPreferences(...)`.
+**Problema:** Sin interfaz, imposible de mockear sin MockK.
 
-**Solución propuesta:** Extraer una interfaz `SessionRepository` y crear una implementación con `SharedPreferences`. La interfaz se puede mockear fácilmente.
+**Solución aplicada:** Extracción de interfaz `SessionRepository`:
+
+```kotlin
+interface SessionRepository {
+    fun saveSession(...)
+    fun getToken(): String?
+    fun getRefreshToken(): String?
+    fun getTokenExpiry(): Long
+    fun getTokenIat(): Long
+    fun getUsername(): String?
+    fun getRoles(): List<String>
+    fun hasUserAppRole(): Boolean
+    fun hasValidSession(): Boolean
+    fun logout()
+}
+```
+
+- ✅ Interfaz `SessionRepository` creada en `domain/repository/SessionRepository.kt`.
+- ✅ `SessionManager` ahora implementa `SessionRepository`.
+- ✅ Los ViewModel que usen `SessionRepository` en lugar de `SessionManager` pueden recibir mocks.
+- ⬜ **Pendiente:** Refactorizar los demás ViewModel (`AuthViewModel`, `ChangePasswordViewModel`, `SifaViewModel`, `CoreViewModel`) para que usen la interfaz en lugar de la clase concreta.
 
 ---
 
@@ -49,9 +77,11 @@ Esto permite pasar dependencias mockeadas desde el test sin modificar el comport
 
 **Archivo:** `app/src/main/java/com/sifa/sifa_go/core/network/NetworkModule.kt`
 
-**Problema:** Objeto singleton con inicialización perezosa que depende de `Context` y de `SessionManager`. No se puede reemplazar en tests.
+**Problema:** Objeto singleton con inicialización perezosa. No se puede reemplazar en tests.
 
 **Solución propuesta:** Convertir en clase con interfaz o permitir sobreescribir la instancia de Retrofit desde tests.
+
+- ⬜ **Pendiente:** Evaluar si es necesario refactorizar. Con la inyección de `apiService` en los ViewModel, `NetworkModule` queda desacoplado de los tests.
 
 ---
 
@@ -59,28 +89,47 @@ Esto permite pasar dependencias mockeadas desde el test sin modificar el comport
 
 **Archivo:** `app/src/main/java/com/sifa/sifa_go/core/network/AuthInterceptor.kt`
 
-**Problema:** Alto acoplamiento con `SessionManager`, `OkHttpClient`, `Retrofit` y corutinas con `runBlocking`. Difícil de probar en aislamiento.
+**Problema:** Alto acoplamiento con `SessionManager`, `OkHttpClient`, `Retrofit` y corutinas con `runBlocking`.
 
 **Solución propuesta:** Extraer la lógica de refresh a un servicio independiente inyectable.
 
+- ⬜ **Pendiente.** Baja prioridad.
+
 ---
 
-## 5. AuthRetrofitClient / CoreRetrofitClient / DeviceRetrofitClient
+## 5. Retrofit Clients
 
-**Archivos:** `core/network/AuthApi.kt`, `CoreApi.kt`, `DeviceApi.kt`
+**Archivos:** `core/network/AuthApi.kt`, `CoreApi.kt`, `DeviceApi.kt`, `PlateDetectorApi.kt`
 
 **Problema:** Objetos `object` que crean el service de Retrofit con `lazy`. No se pueden reemplazar en tests.
 
-**Solución propuesta:** Usar una interfaz `ApiServiceProvider` que pueda tener una implementación fake para tests.
+**Solución aplicada:** Los 4 Retrofit clients ahora permiten sobreescribir el `apiService` desde tests:
+
+```kotlin
+object AuthRetrofitClient {
+    private var _apiService: AuthApiService? = null
+
+    val apiService: AuthApiService
+        get() = _apiService ?: NetworkModule.retrofit.create(AuthApiService::class.java)
+
+    fun setApiService(service: AuthApiService) { _apiService = service }
+    fun resetApiService() { _apiService = null }
+}
+```
+
+- ✅ `AuthRetrofitClient.apiService` ahora es sobreescribible con `setApiService()`.
+- ✅ `CoreRetrofitClient.apiService` sobreescribible con `setApiService()`.
+- ✅ `DeviceRetrofitClient.apiService` sobreescribible con `setApiService()`.
+- ✅ `RetrofitClient.apiService` (Plate Detector) sobreescribible con `setApiService()`.
 
 ---
 
 ## Prioridad de Refactorización
 
-| Componente | Impacto en Tests | Esfuerzo | Prioridad |
-|---|---|---|---|
-| ProfileViewModel | Alto | Bajo | Alta |
-| SessionManager | Alto | Medio | Alta |
-| NetworkModule | Alto | Medio | Media |
-| AuthInterceptor | Medio | Alto | Baja |
-| Retrofit Clients | Medio | Bajo | Alta |
+| Componente | Impacto en Tests | Esfuerzo | Prioridad | Estado |
+|---|---|---|---|---|
+| ProfileViewModel | Alto | Bajo | Alta | ✅ |
+| SessionManager | Alto | Medio | Alta | ✅ (interfaz) |
+| NetworkModule | Alto | Medio | Media | ⬜ |
+| AuthInterceptor | Medio | Alto | Baja | ⬜ |
+| Retrofit Clients | Medio | Bajo | Alta | ✅ |
