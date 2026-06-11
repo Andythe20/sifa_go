@@ -1,5 +1,7 @@
 package com.sifa.sifa_go.ui.views
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -47,12 +50,10 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
@@ -71,6 +72,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sifa.sifa_go.ui.components.PasswordRequirementsIndicator
 import com.sifa.sifa_go.viewmodel.RecoveryViewModel
+import kotlinx.coroutines.delay
 
 @Composable
 fun RecoveryScreen(
@@ -256,7 +258,7 @@ private fun StepCodeAndPassword(
     var showNewPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
 
-    val digits = remember { mutableStateListOf(*Array(6) { "" }) }
+    val digits = remember { mutableStateListOf(*Array(6) { TextFieldValue("") }) }
     val focusRequesters = remember { List(6) { FocusRequester() } }
     val newPasswordFocusRequester = remember { FocusRequester() }
 
@@ -264,9 +266,10 @@ private fun StepCodeAndPassword(
     var remainingSeconds by remember { mutableIntStateOf(codeExpirySeconds) }
 
     LaunchedEffect(viewModel.step, viewModel.recoveryRequestedAt) {
-        if (viewModel.step == 2 && viewModel.recoveryRequestedAt != null) {
+        val requestedAt = viewModel.recoveryRequestedAt
+        if (viewModel.step == 2 && requestedAt != null) {
             while (true) {
-                val elapsed = (System.currentTimeMillis() - viewModel.recoveryRequestedAt) / 1000
+                val elapsed = (System.currentTimeMillis() - requestedAt) / 1000
                 val remaining = (codeExpirySeconds - elapsed).toInt()
                 if (remaining <= 0) {
                     remainingSeconds = 0
@@ -279,15 +282,8 @@ private fun StepCodeAndPassword(
         }
     }
 
-    LaunchedEffect(viewModel.code) {
-        val chars = viewModel.code.padEnd(6).take(6)
-        chars.forEachIndexed { i, c ->
-            digits[i] = if (c.isDigit()) c.toString() else ""
-        }
-    }
-
     fun updateCode() {
-        val combined = digits.joinToString("")
+        val combined = digits.joinToString("") { it.text }
         viewModel.onCodeChanged(combined)
     }
 
@@ -344,6 +340,16 @@ private fun StepCodeAndPassword(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
+                Icon(
+                    imageVector = Icons.Filled.Schedule,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = if (isExpiring)
+                        MaterialTheme.colorScheme.onErrorContainer
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "Código válido por ",
                     fontSize = 13.sp,
@@ -393,12 +399,13 @@ private fun StepCodeAndPassword(
                 DigitBox(
                     value = digit,
                     onValueChange = { newValue ->
-                        val filtered = newValue.filter { it.isDigit() }.take(1)
-                        digits[index] = filtered
+                        val digitText = newValue.text.filter { it.isDigit() }.takeLast(1)
+                        digits[index] = newValue.copy(text = digitText, selection = TextRange(digitText.length))
                         updateCode()
-                        if (filtered.isNotEmpty()) {
+                        if (digitText.isNotEmpty()) {
                             if (index < 5) {
                                 focusRequesters[index + 1].requestFocus()
+                                digits[index + 1] = digits[index + 1].copy(selection = TextRange(digits[index + 1].text.length))
                             } else {
                                 newPasswordFocusRequester.requestFocus()
                             }
@@ -406,7 +413,7 @@ private fun StepCodeAndPassword(
                     },
                     onBackspace = {
                         if (index > 0) {
-                            digits[index - 1] = ""
+                            digits[index - 1] = TextFieldValue("")
                             updateCode()
                             focusRequesters[index - 1].requestFocus()
                         }
@@ -565,18 +572,21 @@ private fun StepCodeAndPassword(
 
 @Composable
 private fun DigitBox(
-    value: String,
-    onValueChange: (String) -> Unit,
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
     onBackspace: () -> Unit,
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier,
     isError: Boolean = false
 ) {
-    val borderColor = when {
-        isError -> MaterialTheme.colorScheme.error
-        value.isNotEmpty() -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.outline
-    }
+    val animatedBorderColor by animateColorAsState(
+        targetValue = when {
+            isError -> MaterialTheme.colorScheme.error
+            value.text.isNotEmpty() -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.outline
+        },
+        animationSpec = tween(durationMillis = 200)
+    )
 
     Box(
         modifier = modifier
@@ -584,11 +594,11 @@ private fun DigitBox(
             .focusRequester(focusRequester)
             .border(
                 width = 1.5.dp,
-                color = borderColor,
+                color = animatedBorderColor,
                 shape = RoundedCornerShape(8.dp)
             )
             .onPreviewKeyEvent { event ->
-                if (event.key == Key.Backspace && event.action == androidx.compose.ui.input.key.KeyAction.KeyUp && value.isEmpty()) {
+                if (event.key == Key.Backspace && event.nativeKeyEvent?.action == android.view.KeyEvent.ACTION_UP && value.text.isEmpty()) {
                     onBackspace()
                     true
                 } else {
@@ -599,10 +609,7 @@ private fun DigitBox(
     ) {
         BasicTextField(
             value = value,
-            onValueChange = { newValue ->
-                val filtered = newValue.filter { it.isDigit() }.take(1)
-                onValueChange(filtered)
-            },
+            onValueChange = onValueChange,
             modifier = Modifier.fillMaxSize(),
             textStyle = MaterialTheme.typography.headlineMedium.copy(
                 textAlign = TextAlign.Center,
