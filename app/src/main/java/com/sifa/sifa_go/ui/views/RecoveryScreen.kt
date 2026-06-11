@@ -1,8 +1,10 @@
 package com.sifa.sifa_go.ui.views
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -37,17 +40,30 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -240,6 +256,41 @@ private fun StepCodeAndPassword(
     var showNewPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
 
+    val digits = remember { mutableStateListOf(*Array(6) { "" }) }
+    val focusRequesters = remember { List(6) { FocusRequester() } }
+    val newPasswordFocusRequester = remember { FocusRequester() }
+
+    val codeExpirySeconds = 15 * 60
+    var remainingSeconds by remember { mutableIntStateOf(codeExpirySeconds) }
+
+    LaunchedEffect(viewModel.step, viewModel.recoveryRequestedAt) {
+        if (viewModel.step == 2 && viewModel.recoveryRequestedAt != null) {
+            while (true) {
+                val elapsed = (System.currentTimeMillis() - viewModel.recoveryRequestedAt) / 1000
+                val remaining = (codeExpirySeconds - elapsed).toInt()
+                if (remaining <= 0) {
+                    remainingSeconds = 0
+                    viewModel.goToStep1()
+                    break
+                }
+                remainingSeconds = remaining
+                delay(1000)
+            }
+        }
+    }
+
+    LaunchedEffect(viewModel.code) {
+        val chars = viewModel.code.padEnd(6).take(6)
+        chars.forEachIndexed { i, c ->
+            digits[i] = if (c.isDigit()) c.toString() else ""
+        }
+    }
+
+    fun updateCode() {
+        val combined = digits.joinToString("")
+        viewModel.onCodeChanged(combined)
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -271,7 +322,49 @@ private fun StepCodeAndPassword(
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val minutes = remainingSeconds / 60
+        val seconds = remainingSeconds % 60
+        val timeText = "%02d:%02d".format(minutes, seconds)
+        val isExpiring = remainingSeconds <= 60
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isExpiring)
+                    MaterialTheme.colorScheme.errorContainer
+                else
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Código válido por ",
+                    fontSize = 13.sp,
+                    color = if (isExpiring)
+                        MaterialTheme.colorScheme.onErrorContainer
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = timeText,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isExpiring)
+                        MaterialTheme.colorScheme.error
+                    else
+                        MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         if (viewModel.error != null) {
             Card(
@@ -292,19 +385,38 @@ private fun StepCodeAndPassword(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        OutlinedTextField(
-            value = viewModel.code,
-            onValueChange = { viewModel.onCodeChanged(it) },
-            label = { Text("Código de verificación (6 dígitos)") },
-            leadingIcon = { Icon(Icons.Filled.Key, contentDescription = null) },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Next
-            ),
-            singleLine = true,
-            isError = viewModel.fieldErrors.containsKey("code"),
-            modifier = Modifier.fillMaxWidth()
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            digits.forEachIndexed { index, digit ->
+                DigitBox(
+                    value = digit,
+                    onValueChange = { newValue ->
+                        val filtered = newValue.filter { it.isDigit() }.take(1)
+                        digits[index] = filtered
+                        updateCode()
+                        if (filtered.isNotEmpty()) {
+                            if (index < 5) {
+                                focusRequesters[index + 1].requestFocus()
+                            } else {
+                                newPasswordFocusRequester.requestFocus()
+                            }
+                        }
+                    },
+                    onBackspace = {
+                        if (index > 0) {
+                            digits[index - 1] = ""
+                            updateCode()
+                            focusRequesters[index - 1].requestFocus()
+                        }
+                    },
+                    focusRequester = focusRequesters[index],
+                    modifier = Modifier.weight(1f),
+                    isError = viewModel.fieldErrors.containsKey("code")
+                )
+            }
+        }
 
         if (viewModel.fieldErrors.containsKey("code")) {
             Text(
@@ -341,7 +453,9 @@ private fun StepCodeAndPassword(
             ),
             singleLine = true,
             isError = viewModel.fieldErrors.containsKey("newPassword"),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(newPasswordFocusRequester)
         )
 
         if (viewModel.fieldErrors.containsKey("newPassword")) {
@@ -446,6 +560,67 @@ private fun StepCodeAndPassword(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun DigitBox(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onBackspace: () -> Unit,
+    focusRequester: FocusRequester,
+    modifier: Modifier = Modifier,
+    isError: Boolean = false
+) {
+    val borderColor = when {
+        isError -> MaterialTheme.colorScheme.error
+        value.isNotEmpty() -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.outline
+    }
+
+    Box(
+        modifier = modifier
+            .height(56.dp)
+            .focusRequester(focusRequester)
+            .border(
+                width = 1.5.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .onPreviewKeyEvent { event ->
+                if (event.key == Key.Backspace && event.action == androidx.compose.ui.input.key.KeyAction.KeyUp && value.isEmpty()) {
+                    onBackspace()
+                    true
+                } else {
+                    false
+                }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = { newValue ->
+                val filtered = newValue.filter { it.isDigit() }.take(1)
+                onValueChange(filtered)
+            },
+            modifier = Modifier.fillMaxSize(),
+            textStyle = MaterialTheme.typography.headlineMedium.copy(
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
+            ),
+            singleLine = true,
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    innerTextField()
+                }
+            }
+        )
     }
 }
 

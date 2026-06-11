@@ -41,6 +41,9 @@ class RecoveryViewModel(application: Application) : AndroidViewModel(application
     var fieldErrors by mutableStateOf<Map<String, String>>(emptyMap())
         private set
 
+    var recoveryRequestedAt by mutableStateOf<Long?>(null)
+        private set
+
     init {
         NetworkModule.init(application)
     }
@@ -106,6 +109,7 @@ class RecoveryViewModel(application: Application) : AndroidViewModel(application
                     newPassword = ""
                     confirmPassword = ""
                     fieldErrors = emptyMap()
+                    recoveryRequestedAt = System.currentTimeMillis()
                     step = 2
                 } else {
                     val errorBody = response.errorBody()?.string()
@@ -193,6 +197,7 @@ class RecoveryViewModel(application: Application) : AndroidViewModel(application
         confirmPassword = ""
         fieldErrors = emptyMap()
         error = null
+        recoveryRequestedAt = null
         step = 1
     }
 
