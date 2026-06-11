@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sifa.sifa_go.core.network.AuthApiService
 import com.sifa.sifa_go.core.network.AuthRetrofitClient
+import com.sifa.sifa_go.core.network.NetworkModule
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.UserResponse
 import com.sifa.sifa_go.domain.repository.SessionRepository
@@ -18,8 +19,12 @@ import kotlinx.coroutines.launch
 class ProfileViewModel(
     application: Application,
     private val sessionRepository: SessionRepository = SessionManager(application),
-    private val apiService: AuthApiService = AuthRetrofitClient.apiService
+    private val apiService: AuthApiService? = null
 ) : AndroidViewModel(application) {
+
+    private val resolvedApiService: AuthApiService by lazy {
+        apiService ?: AuthRetrofitClient.apiService
+    }
 
     var user by mutableStateOf<UserResponse?>(null)
         private set
@@ -31,6 +36,7 @@ class ProfileViewModel(
         private set
 
     init {
+        NetworkModule.init(application)
         loadUserProfile()
     }
 
@@ -48,7 +54,7 @@ class ProfileViewModel(
 
             try {
                 Log.d("ProfileVM", "Fetching profile for email: $email")
-                val response = apiService.getUserByEmail(email)
+                val response = resolvedApiService.getUserByEmail(email)
 
                 if (response.isSuccessful) {
                     user = response.body()
