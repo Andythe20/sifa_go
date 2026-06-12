@@ -241,12 +241,23 @@ fun TicketScreen(
                 color = MaterialTheme.colorScheme.primary
             )
             if (isManualEntry && evidencePhotos.isEmpty()) {
-                Text(
-                    text = "* Se requiere al menos 1 foto para el ingreso manual",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.Cancel,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Se requiere al menos 1 foto para el ingreso manual",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 

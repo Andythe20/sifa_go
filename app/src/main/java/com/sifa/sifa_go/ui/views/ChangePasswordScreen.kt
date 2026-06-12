@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
@@ -157,12 +158,23 @@ fun ChangePasswordScreen(
                 )
 
                 if (viewModel.fieldErrors.containsKey("oldPassword")) {
-                    Text(
-                        text = viewModel.fieldErrors["oldPassword"] ?: "",
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.Cancel,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = viewModel.fieldErrors["oldPassword"] ?: "",
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -199,12 +211,23 @@ fun ChangePasswordScreen(
                 )
 
                 if (viewModel.fieldErrors.containsKey("newPassword")) {
-                    Text(
-                        text = viewModel.fieldErrors["newPassword"] ?: "",
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.Cancel,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = viewModel.fieldErrors["newPassword"] ?: "",
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -231,7 +254,20 @@ fun ChangePasswordScreen(
                     isError = viewModel.fieldErrors.containsKey("confirmPassword")
                             || (viewModel.confirmPassword.isNotEmpty() && !viewModel.passwordsMatch),
                     supportingText = if (viewModel.confirmPassword.isNotEmpty() && !viewModel.passwordsMatch) {
-                        { Text("Las contraseñas no coinciden", color = MaterialTheme.colorScheme.error) }
+                        {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Filled.Cancel,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Las contraseñas no coinciden", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
                     } else null,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -301,12 +337,23 @@ fun ChangePasswordScreen(
                     containerColor = MaterialTheme.colorScheme.errorContainer
                 )
             ) {
-                Text(
-                    text = viewModel.error ?: "",
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(12.dp)
-                )
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.Cancel,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = viewModel.error ?: "",
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontSize = 13.sp
+                    )
+                }
             }
         }
 
