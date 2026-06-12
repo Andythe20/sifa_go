@@ -24,11 +24,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -107,6 +109,7 @@ fun RecoveryScreen(
                 )
             }
         }
+
     }
 }
 
@@ -150,25 +153,6 @@ private fun StepEmail(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        if (viewModel.error != null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Text(
-                    text = viewModel.error ?: "",
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(12.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
         OutlinedTextField(
             value = viewModel.email,
             onValueChange = { viewModel.onEmailChanged(it) },
@@ -182,19 +166,31 @@ private fun StepEmail(
                 onDone = { viewModel.requestCode() }
             ),
             singleLine = true,
-            isError = viewModel.fieldErrors.containsKey("email"),
+            isError = viewModel.fieldErrors.containsKey("email") || viewModel.error != null,
             modifier = Modifier.fillMaxWidth()
         )
 
-        if (viewModel.fieldErrors.containsKey("email")) {
-            Text(
-                text = viewModel.fieldErrors["email"] ?: "",
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 12.sp,
+        val emailError = viewModel.fieldErrors["email"] ?: viewModel.error
+        if (emailError != null) {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, top = 4.dp)
-            )
+                    .padding(start = 16.dp, top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Filled.Cancel,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = emailError,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 12.sp
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -372,25 +368,6 @@ private fun StepCodeAndPassword(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (viewModel.error != null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Text(
-                    text = viewModel.error ?: "",
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(12.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -420,20 +397,32 @@ private fun StepCodeAndPassword(
                     },
                     focusRequester = focusRequesters[index],
                     modifier = Modifier.weight(1f),
-                    isError = viewModel.fieldErrors.containsKey("code")
+                    isError = viewModel.fieldErrors.containsKey("code") || viewModel.error != null
                 )
             }
         }
 
-        if (viewModel.fieldErrors.containsKey("code")) {
-            Text(
-                text = viewModel.fieldErrors["code"] ?: "",
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 12.sp,
+        val codeError = viewModel.fieldErrors["code"] ?: viewModel.error
+        if (codeError != null) {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, top = 4.dp)
-            )
+                    .padding(start = 16.dp, top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Filled.Cancel,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = codeError,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 12.sp
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -466,14 +455,25 @@ private fun StepCodeAndPassword(
         )
 
         if (viewModel.fieldErrors.containsKey("newPassword")) {
-            Text(
-                text = viewModel.fieldErrors["newPassword"] ?: "",
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 12.sp,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, top = 4.dp)
-            )
+                    .padding(start = 16.dp, top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Filled.Cancel,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = viewModel.fieldErrors["newPassword"] ?: "",
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 12.sp
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -512,7 +512,20 @@ private fun StepCodeAndPassword(
             isError = viewModel.fieldErrors.containsKey("confirmPassword")
                     || (viewModel.confirmPassword.isNotEmpty() && !viewModel.passwordsMatch),
             supportingText = if (viewModel.confirmPassword.isNotEmpty() && !viewModel.passwordsMatch) {
-                { Text("Las contraseñas no coinciden", color = MaterialTheme.colorScheme.error) }
+                {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.Cancel,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Las contraseñas no coinciden", color = MaterialTheme.colorScheme.error)
+                    }
+                }
             } else null,
             modifier = Modifier.fillMaxWidth()
         )
