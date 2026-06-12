@@ -12,6 +12,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -143,7 +144,8 @@ fun MainLayout(
                                     shape = RoundedCornerShape(12.dp),
                                     color = MaterialTheme.colorScheme.surface,
                                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                                    tonalElevation = 2.dp
+                                    tonalElevation = 2.dp,
+                                    modifier = Modifier.clickable { onProfileClick() }
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
