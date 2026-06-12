@@ -28,7 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Switch
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -275,11 +275,11 @@ fun ChangePasswordScreen(
                 .clickable { viewModel.onAcceptLogoutChanged(!viewModel.acceptLogout) },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Checkbox(
+            Switch(
                 checked = viewModel.acceptLogout,
                 onCheckedChange = { viewModel.onAcceptLogoutChanged(it) }
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = "Entiendo que se cerrará mi sesión",
                 fontSize = 14.sp,
