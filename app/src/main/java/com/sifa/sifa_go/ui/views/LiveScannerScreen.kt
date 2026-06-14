@@ -16,15 +16,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,10 +37,15 @@ import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -59,7 +67,9 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.sifa.sifa_go.core.image.ImageSanitizer
 import com.sifa.sifa_go.core.network.GpsStatus
+import com.sifa.sifa_go.core.utils.takePictureWithFlash
 import com.sifa.sifa_go.core.utils.vibrateShort
+import com.sifa.sifa_go.ui.components.FlashToggle
 import com.sifa.sifa_go.viewmodel.SifaViewModel
 import java.io.File
 import java.util.concurrent.Executor
@@ -77,6 +87,7 @@ fun LiveScannerScreen(
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
     val mainExecutor = remember { ContextCompat.getMainExecutor(context) }
+    var isFlashOn by remember { mutableStateOf(false) }
 
     val permissionState = rememberMultiplePermissionsState(
         permissions = listOf(
@@ -104,7 +115,7 @@ fun LiveScannerScreen(
                 ExtendedFloatingActionButton(
                     onClick = {
                         context.vibrateShort()
-                        takePicture(cameraController, context, mainExecutor) { path ->
+                        takePicture(cameraController, context, mainExecutor, isFlashOn) { path ->
                             onPhotoTaken(path)
                         }
                     },
@@ -121,30 +132,41 @@ fun LiveScannerScreen(
                 CameraView(cameraController = cameraController, lifecycle = lifecycle, modifier = Modifier.fillMaxSize())
                 ScannerOverlay()
 
-                val isGpsAvailable = gpsStatus is GpsStatus.Available
                 Row(
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 12.dp, end = 12.dp)
-                        .clickable(enabled = isGpsAvailable && !isGPSCalibrating) { 
-                            onStartGpsCalibration() 
-                        },
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .padding(top = 12.dp, start = 8.dp, end = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    when {
-                        isGPSCalibrating -> CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
-                        !isGpsAvailable -> Icon(Icons.Default.LocationOff, contentDescription = "GPS desactivado", tint = Color.Red, modifier = Modifier.size(16.dp))
-                        else -> gpsAccuracy?.let { accuracy ->
-                            Icon(Icons.Default.MyLocation, contentDescription = "Recalibrar GPS", tint = if (accuracy < 10f) Color.Green else Color.Yellow, modifier = Modifier.size(16.dp))
+                    FlashToggle(
+                        isFlashOn = isFlashOn,
+                        onToggle = { isFlashOn = it },
+                    )
+
+                    val isGpsAvailable = gpsStatus is GpsStatus.Available
+                    Row(
+                        modifier = Modifier.clickable(enabled = isGpsAvailable && !isGPSCalibrating) {
+                            onStartGpsCalibration()
+                        },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        when {
+                            isGPSCalibrating -> CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                            !isGpsAvailable -> Icon(Icons.Default.LocationOff, contentDescription = "GPS desactivado", tint = Color.Red, modifier = Modifier.size(16.dp))
+                            else -> gpsAccuracy?.let { accuracy ->
+                                Icon(Icons.Default.MyLocation, contentDescription = "Recalibrar GPS", tint = if (accuracy < 10f) Color.Green else Color.Yellow, modifier = Modifier.size(16.dp))
+                            }
                         }
+                        val accuracyText = if (!isGpsAvailable) " GPS: --" else gpsAccuracy?.let { " GPS: ${it.toInt()}m" } ?: " GPS: --"
+                        val accuracyColor = when {
+                            !isGpsAvailable -> Color.Red
+                            gpsAccuracy?.let { it < 10f } == true -> Color.Green
+                            else -> Color.Yellow
+                        }
+                        Text(text = accuracyText, color = accuracyColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
-                    val accuracyText = if (!isGpsAvailable) " GPS: --" else gpsAccuracy?.let { " GPS: ${it.toInt()}m" } ?: " GPS: --"
-                    val accuracyColor = when {
-                        !isGpsAvailable -> Color.Red
-                        gpsAccuracy?.let { it < 10f } == true -> Color.Green
-                        else -> Color.Yellow
-                    }
-                    Text(text = accuracyText, color = accuracyColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
         } else {
@@ -175,32 +197,76 @@ fun CameraView(
     cameraController: LifecycleCameraController,
     lifecycle: LifecycleOwner,
     modifier: Modifier = Modifier,
+    showZoomHint: Boolean = true
 ) {
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-            PreviewView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-                implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                controller = cameraController
+    val zoomLevels = remember { listOf(1.0f, 2.0f, 3.0f) }
+    val zoomState by cameraController.zoomState.observeAsState()
+    val currentZoom = zoomState?.zoomRatio ?: 1.0f
+
+    Box(modifier = modifier) {
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { context ->
+                PreviewView(context).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                    controller = cameraController
+                }
+            }
+        )
+
+        if (showZoomHint) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color.Black.copy(alpha = 0.35f),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 100.dp)
+                    .clickable {
+                        val nextZoom = when {
+                            currentZoom < 1.5f -> 2.0f
+                            currentZoom < 2.5f -> 3.0f
+                            else -> 1.0f
+                        }
+                        cameraController.setZoomRatio(nextZoom)
+                    }
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.Search,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${currentZoom.toInt()}x",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 12.sp
+                    )
+                }
             }
         }
-    )
+    }
 }
 
 private fun takePicture(
     cameraController: LifecycleCameraController,
     context: Context,
     executor: Executor,
+    useFlash: Boolean = false,
     onPhotoTaken: (String) -> Unit
 ) {
     val photoFile = File(context.cacheDir, "sifa_photo_${System.currentTimeMillis()}.jpg")
     val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
-    cameraController.takePicture(
+    cameraController.takePictureWithFlash(
         outputOptions,
         executor,
         object : ImageCapture.OnImageSavedCallback {
@@ -215,7 +281,8 @@ private fun takePicture(
             override fun onError(exception: ImageCaptureException) {
                 Log.e("LiveScannerScreen", "Error al tomar la foto", exception)
             }
-        }
+        },
+        enabled = useFlash
     )
 }
 
