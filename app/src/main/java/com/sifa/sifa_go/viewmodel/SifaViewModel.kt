@@ -8,15 +8,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sifa.sifa_go.core.image.toCleanMultipartPart
 import com.sifa.sifa_go.core.network.CoreRetrofitClient
 import com.sifa.sifa_go.core.network.RetrofitClient
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.InfraccionHistoryItem
 import com.sifa.sifa_go.exception.NetworkErrorHandler
 import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 
 class SifaViewModel(application: Application) : AndroidViewModel(application) {
@@ -187,12 +185,8 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
             detectionError = null
             try {
                 val file = File(filePath)
+                val body = file.toCleanMultipartPart("file")
 
-                // Preparamos el archivo para enviarlo por HTTP
-                val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
-                val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
-
-                // Hacemos la llamada a la API
                 val response = RetrofitClient.apiService.detectPlate(
                     file = body
                 )

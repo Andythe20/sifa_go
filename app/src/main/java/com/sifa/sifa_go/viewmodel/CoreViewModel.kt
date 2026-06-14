@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import com.sifa.sifa_go.core.image.toCleanMultipartPart
 import com.sifa.sifa_go.core.network.CoreRetrofitClient
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.PlateInfoResponse
@@ -14,8 +15,6 @@ import com.sifa.sifa_go.data.model.TipoInfraccionResponse
 import com.sifa.sifa_go.data.model.InfraccionCreateRequest
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 import java.io.File
@@ -157,11 +156,8 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
                 val jsonRequest = Gson().toJson(requestConCitacion)
                     .toRequestBody("application/json".toMediaTypeOrNull())
 
-                // Convertir la lista de rutas en MultipartBody.Part
                 val fotoParts = imagePaths.map { path ->
-                    val file = File(path)
-                    val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
-                    MultipartBody.Part.createFormData("fotos", file.name, requestFile)
+                    File(path).toCleanMultipartPart("fotos")
                 }
                 // Enviar la petición
                 val response = CoreRetrofitClient.apiService.createInfraccion(
