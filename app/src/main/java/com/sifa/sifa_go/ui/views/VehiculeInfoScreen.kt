@@ -25,8 +25,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Surface
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -204,40 +202,8 @@ fun VehicleInfoScreen(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // tajeta con el color
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 15.dp, end = 15.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Gray.copy(alpha = 0.05f))
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .padding(top = 10.dp, bottom = 10.dp)
-                    .fillMaxWidth()
-            ) {
-                Text(
-                    text = "COLOR",
-                    color = Color.DarkGray.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(start = 16.dp),
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = Color.Transparent,
-                    border = BorderStroke(1.dp, Color.Gray.copy(alpha = 0.4f))
-                ) {
-                    Text(
-                        text = vehicleData.color,
-                        fontSize = 11.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
-                    )
-                }
-            }
-        }
+        // tarjeta con el color
+        InfoCard("COLOR", vehicleData.color)
 
         Spacer(modifier = Modifier.height(6.dp))
 
