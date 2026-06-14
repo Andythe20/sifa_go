@@ -12,6 +12,7 @@ import com.sifa.sifa_go.core.network.NetworkModule
 import com.sifa.sifa_go.core.utils.PasswordValidator
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.ChangePasswordRequest
+import com.sifa.sifa_go.data.model.UserResponse
 import com.sifa.sifa_go.exception.NetworkErrorHandler
 import kotlinx.coroutines.launch
 
@@ -114,17 +115,45 @@ class ChangePasswordViewModel(application: Application) : AndroidViewModel(appli
             return
         }
 
+        val email = sessionManager.getUsername()
+        if (email.isNullOrBlank()) {
+            error = "No se encontró una sesión activa. Vuelve a iniciar sesión."
+            return
+        }
+
         viewModelScope.launch {
             isLoading = true
             error = null
 
             try {
+                Log.d("ChangePassVM", "Verificando correo: $email")
+                val verifyResponse = AuthRetrofitClient.apiService.getUserByEmail(email)
+
+                if (!verifyResponse.isSuccessful) {
+                    val errorBody = verifyResponse.errorBody()?.string()
+                    error = when {
+                        verifyResponse.code() == 404 || errorBody?.contains("no se encuentra registrado") == true ->
+                            "El correo no se encuentra registrado. Es posible que la cuenta haya sido eliminada."
+                        errorBody?.contains("inactiva") == true ->
+                            "Esta cuenta se encuentra inactiva. Contacte al administrador."
+                        else ->
+                            NetworkErrorHandler.getErrorMessage(verifyResponse.code())
+                    }
+                    return@launch
+                }
+
+                val user = verifyResponse.body()
+                if (user != null && !user.active) {
+                    error = "Esta cuenta se encuentra inactiva. Contacte al administrador."
+                    return@launch
+                }
+
+                Log.d("ChangePassVM", "Correo verificado, procediendo con cambio de contraseña")
                 val request = ChangePasswordRequest(
                     oldPassword = oldPassword,
                     newPassword = newPassword
                 )
 
-                Log.d("ChangePassVM", "Enviando cambio de contraseña")
                 val response = AuthRetrofitClient.apiService.changePassword(request)
 
                 if (response.isSuccessful) {
