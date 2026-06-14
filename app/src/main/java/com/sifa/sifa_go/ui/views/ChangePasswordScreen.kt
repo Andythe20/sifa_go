@@ -296,7 +296,7 @@ fun ChangePasswordScreen(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Al cambiar la contraseña, se cerrarán todas tus sesiones activas y deberás iniciar sesión nuevamente.",
+                    text = "Al cambiar la contraseña, se cerrará tu sesión activa y deberás iniciar sesión nuevamente.",
                     fontSize = 13.sp,
                     color = Color(0xFF5D4037)
                 )
@@ -374,6 +374,12 @@ fun ChangePasswordScreen(
                     strokeWidth = 2.dp
                 )
             } else {
+                Icon(
+                    Icons.Filled.Lock,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Cambiar contraseña",
                     fontSize = 16.sp,
