@@ -36,6 +36,7 @@ import com.sifa.sifa_go.core.network.AuthRetrofitClient
 import com.sifa.sifa_go.core.utils.BiometricHelper
 import com.sifa.sifa_go.core.network.ServerConfig
 import com.sifa.sifa_go.core.utils.SessionManager
+import com.sifa.sifa_go.core.utils.takePictureWithFlash
 import com.sifa.sifa_go.core.utils.vibrateShort
 import com.sifa.sifa_go.data.model.RefreshTokenRequest
 import com.sifa.sifa_go.ui.components.MainLayout
@@ -48,6 +49,7 @@ import com.sifa.sifa_go.ui.views.TicketScreen
 import com.sifa.sifa_go.ui.views.VehicleInfoScreen
 import com.sifa.sifa_go.ui.views.PlateResultScreen
 import com.sifa.sifa_go.ui.views.CameraView
+import com.sifa.sifa_go.ui.components.FlashToggle
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -512,41 +514,45 @@ fun MainAppNavigation(
                     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
                     val mainExecutor = remember { androidx.core.content.ContextCompat.getMainExecutor(context) }
                     var isTakingEvidencePhoto by remember { androidx.compose.runtime.mutableStateOf(false) }
+                    var isFlashOn by remember { androidx.compose.runtime.mutableStateOf(false) }
 
                     Box(modifier = Modifier.fillMaxSize()) {
-                        TicketScreen(
-                            vehicleData = coreViewModel.vehicleData!!,
-                            tiposInfraccion = coreViewModel.tiposInfraccion,
-                            evidencePhotos = sifaViewModel.evidencePhotoPaths,
-                            latitude = sifaViewModel.latitude,
-                            longitude = sifaViewModel.longitude,
-                            isSubmitting = coreViewModel.isSubmittingInfraccion,
-                            isManualEntry = sifaViewModel.isManualEntry,
-                            onCancelClick = { tabsNavController.popBackStack() },
-                            onSubmitClick = { idInfraccion, observaciones, lat, lon ->
-                                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
-                                val fechaFiscalizacion = sifaViewModel.captureTime ?: java.time.LocalDateTime.now().format(formatter)
-                                val lugarFinal = sifaViewModel.currentAddress ?: "Ubicación GPS: $lat, $lon"
+                        val vehicleData = coreViewModel.vehicleData
+                        if (vehicleData != null) {
+                            TicketScreen(
+                                vehicleData = vehicleData,
+                                tiposInfraccion = coreViewModel.tiposInfraccion,
+                                evidencePhotos = sifaViewModel.evidencePhotoPaths,
+                                latitude = sifaViewModel.latitude,
+                                longitude = sifaViewModel.longitude,
+                                isSubmitting = coreViewModel.isSubmittingInfraccion,
+                                isManualEntry = sifaViewModel.isManualEntry,
+                                onCancelClick = { tabsNavController.popBackStack() },
+                                onSubmitClick = { idInfraccion, observaciones, lat, lon ->
+                                    val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+                                    val fechaFiscalizacion = sifaViewModel.captureTime ?: java.time.LocalDateTime.now().format(formatter)
+                                    val lugarFinal = sifaViewModel.currentAddress ?: "Ubicación GPS: $lat, $lon"
 
-                                val request = com.sifa.sifa_go.data.model.InfraccionCreateRequest(
-                                    lugar = lugarFinal,
-                                    fecha = fechaFiscalizacion,
-                                    latitud = lat?.toFloat() ?: 0f,
-                                    longitud = lon?.toFloat() ?: 0f,
-                                    patenteVehiculo = coreViewModel.vehicleData!!.patente,
-                                    idTipoInfraccion = idInfraccion,
-                                    observaciones = observaciones,
-                                    fechaCitacion = null
-                                )
-                                coreViewModel.submitInfraccion(request, sifaViewModel.evidencePhotoPaths.toList())
-                            },
-                            onAddPhotoClick = { isTakingEvidencePhoto = true },
-                            onRemovePhoto = { path ->
-                                sifaViewModel.removeEvidencePhoto(path)
-                            }
-                        )
+                                    val request = com.sifa.sifa_go.data.model.InfraccionCreateRequest(
+                                        lugar = lugarFinal,
+                                        fecha = fechaFiscalizacion,
+                                        latitud = lat?.toFloat() ?: 0f,
+                                        longitud = lon?.toFloat() ?: 0f,
+                                        patenteVehiculo = vehicleData.patente,
+                                        idTipoInfraccion = idInfraccion,
+                                        observaciones = observaciones,
+                                        fechaCitacion = null
+                                    )
+                                    coreViewModel.submitInfraccion(request, sifaViewModel.evidencePhotoPaths.toList())
+                                },
+                                onAddPhotoClick = { isTakingEvidencePhoto = true },
+                                onRemovePhoto = { path ->
+                                    sifaViewModel.removeEvidencePhoto(path)
+                                }
+                            )
+                        }
 
-                        if (isTakingEvidencePhoto) {
+                        if (isTakingEvidencePhoto && vehicleData != null) {
                             Box(
                                 modifier = Modifier.fillMaxSize().background(Color.Black)
                             ) {
@@ -557,12 +563,19 @@ fun MainAppNavigation(
                                 ) {
                                     Icon(androidx.compose.material.icons.Icons.Filled.Close, contentDescription = "Cerrar", tint = Color.White)
                                 }
+                                FlashToggle(
+                                    isFlashOn = isFlashOn,
+                                    onToggle = { isFlashOn = it },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(top = 35.dp, end = 8.dp)
+                                )
                                 ExtendedFloatingActionButton(
                                     onClick = {
                                         context.vibrateShort()
                                         val photoFile = File(context.cacheDir, "sifa_photo_${System.currentTimeMillis()}.jpg")
                                         val outputOptions = androidx.camera.core.ImageCapture.OutputFileOptions.Builder(photoFile).build()
-                                        cameraController.takePicture(
+                                        cameraController.takePictureWithFlash(
                                             outputOptions,
                                             mainExecutor,
                                             object : androidx.camera.core.ImageCapture.OnImageSavedCallback {
@@ -575,7 +588,8 @@ fun MainAppNavigation(
                                                 override fun onError(exception: androidx.camera.core.ImageCaptureException) {
                                                     Log.e("AppNavigation", "Error al tomar la foto de evidencia", exception)
                                                 }
-                                            }
+                                            },
+                                            enabled = isFlashOn
                                         )
                                     },
                                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp),
