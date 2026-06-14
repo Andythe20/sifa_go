@@ -1,13 +1,6 @@
 package com.sifa.sifa_go.ui.views
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,6 +27,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,6 +50,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sifa.sifa_go.data.model.PlateInfoResponse
+import com.sifa.sifa_go.ui.components.ScrollIndicator
 import com.sifa.sifa_go.ui.theme.SIFA_GOTheme
 
 @Composable
@@ -310,31 +306,12 @@ fun VehicleInfoScreen(
         }
     }
 
-    AnimatedVisibility(
-        visible = scrollState.value < scrollState.maxValue,
-        enter = fadeIn(),
-        exit = fadeOut(),
+    ScrollIndicator(
+        scrollState = scrollState,
         modifier = Modifier
             .align(Alignment.BottomEnd)
             .padding(end = 20.dp, bottom = 20.dp)
-    ) {
-        val infiniteTransition = rememberInfiniteTransition()
-        val bounce by infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = -10f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(600),
-                repeatMode = RepeatMode.Reverse
-            )
-        )
-        Icon(
-            Icons.Filled.KeyboardArrowDown,
-            contentDescription = "Desplazar hacia abajo",
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .size(36.dp)
-                .offset(y = bounce.dp)
-        )
+    )
     }
 }
 

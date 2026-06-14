@@ -41,6 +41,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.sifa.sifa_go.data.model.PlateInfoResponse
 import com.sifa.sifa_go.data.model.TipoInfraccionResponse
+import com.sifa.sifa_go.ui.components.ScrollIndicator
 import com.sifa.sifa_go.ui.theme.SIFA_GOTheme
 import java.io.File
 
@@ -106,12 +107,15 @@ fun TicketScreen(
         )
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .background(MaterialTheme.colorScheme.background)
-            .padding(20.dp),
+    val scrollState = rememberScrollState()
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .background(MaterialTheme.colorScheme.background)
+                .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Título
@@ -468,6 +472,14 @@ fun TicketScreen(
             }
         }
     }
+
+    ScrollIndicator(
+        scrollState = scrollState,
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(end = 20.dp, bottom = 20.dp)
+    )
+}
 }
 
 @Composable
