@@ -28,6 +28,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.sifa.sifa_go.core.image.ImageSanitizer
 import com.sifa.sifa_go.core.network.GpsStatus
 import com.sifa.sifa_go.core.network.rememberGpsStatus
 import com.sifa.sifa_go.core.network.rememberNetworkStatus
@@ -566,7 +567,7 @@ fun MainAppNavigation(
                                             mainExecutor,
                                             object : androidx.camera.core.ImageCapture.OnImageSavedCallback {
                                                 override fun onImageSaved(output: androidx.camera.core.ImageCapture.OutputFileResults) {
-                                                    val permanentPath = com.sifa.sifa_go.core.utils.ImageUtils.compressImage(context, photoFile)
+                                                    val permanentPath = ImageSanitizer.sanitize(photoFile).absolutePath
                                                     if (photoFile.exists()) { photoFile.delete() }
                                                     sifaViewModel.evidencePhotoPaths.add(permanentPath)
                                                     isTakingEvidencePhoto = false

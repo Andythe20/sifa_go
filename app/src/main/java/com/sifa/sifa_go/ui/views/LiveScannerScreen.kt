@@ -57,8 +57,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.sifa.sifa_go.core.image.ImageSanitizer
 import com.sifa.sifa_go.core.network.GpsStatus
-import com.sifa.sifa_go.core.utils.ImageUtils
 import com.sifa.sifa_go.core.utils.vibrateShort
 import com.sifa.sifa_go.viewmodel.SifaViewModel
 import java.io.File
@@ -205,7 +205,7 @@ private fun takePicture(
         executor,
         object : ImageCapture.OnImageSavedCallback {
             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                val permanentPath = ImageUtils.compressImage(context, photoFile)
+                val permanentPath = ImageSanitizer.sanitize(photoFile).absolutePath
                 if (photoFile.exists()) {
                     photoFile.delete()
                 }
