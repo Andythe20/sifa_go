@@ -12,13 +12,16 @@ import com.sifa.sifa_go.data.model.UserResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface AuthApiService {
+    @Headers("X-Client-Origin: mobile")
     @POST("auth/api/v1/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
+    @Headers("X-Client-Origin: mobile")
     @POST("auth/api/v1/refresh")
     suspend fun refresh(@Body request: RefreshTokenRequest): Response<LoginResponse>
 
