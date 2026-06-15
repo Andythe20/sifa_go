@@ -96,7 +96,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun registerDevice() {
+    fun registerDevice() {
         val appVersion = BuildConfig.VERSION_NAME
         val deviceInfo = getDeviceInfo(getApplication())
         viewModelScope.launch {

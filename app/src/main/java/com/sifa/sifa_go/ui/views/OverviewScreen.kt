@@ -25,14 +25,34 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.ui.components.ErrorView
+import com.sifa.sifa_go.viewmodel.AuthViewModel
+import com.sifa.sifa_go.viewmodel.PresenceViewModel
 import com.sifa.sifa_go.viewmodel.SifaViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OverviewScreen(sifaViewModel: SifaViewModel) {
+fun OverviewScreen(
+    sifaViewModel: SifaViewModel,
+    presenceViewModel: PresenceViewModel
+) {
+    val context = LocalContext.current
+    val authViewModel: AuthViewModel = viewModel()
+    val sessionManager = remember { SessionManager(context) }
+
+    val onLocationRefresh: () -> Unit = {
+        if (!sifaViewModel.isGPSCalibrating) {
+            sifaViewModel.refreshCurrentLocation()
+            authViewModel.registerDevice()
+            presenceViewModel.sendManualHeartbeat(context, sessionManager)
+        }
+    }
+
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     val today = dateFormat.format(Date())
 
@@ -116,7 +136,7 @@ fun OverviewScreen(sifaViewModel: SifaViewModel) {
                 accuracy = sifaViewModel.gpsAccuracy,
                 address = sifaViewModel.currentAddress,
                 isCalibrating = sifaViewModel.isGPSCalibrating,
-                onRefresh = { sifaViewModel.refreshCurrentLocation() }
+                onRefresh = onLocationRefresh
             )
 
             Text(

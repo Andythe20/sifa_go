@@ -21,7 +21,7 @@ object NetworkErrorHandler {
                 "Sin conexión a internet."
 
             is java.net.SocketTimeoutException ->
-                "Tiempo de conexión agotado."
+                "Conexión fallida. Intenta de nuevo más tarde."
 
             else ->
                 "Error de conexión. Intenta nuevamente."

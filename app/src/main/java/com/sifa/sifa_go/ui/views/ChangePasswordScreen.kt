@@ -308,12 +308,13 @@ fun ChangePasswordScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { viewModel.onAcceptLogoutChanged(!viewModel.acceptLogout) },
+                .clickable(enabled = !viewModel.isLoading) { viewModel.onAcceptLogoutChanged(!viewModel.acceptLogout) },
             verticalAlignment = Alignment.CenterVertically
         ) {
             Switch(
                 checked = viewModel.acceptLogout,
-                onCheckedChange = { viewModel.onAcceptLogoutChanged(it) }
+                onCheckedChange = { viewModel.onAcceptLogoutChanged(it) },
+                enabled = !viewModel.isLoading
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(

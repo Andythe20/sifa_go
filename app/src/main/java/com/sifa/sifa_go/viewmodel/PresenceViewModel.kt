@@ -40,7 +40,15 @@ class PresenceViewModel : ViewModel() {
         }
     }
 
-    private suspend fun sendHeartbeat(
+    fun sendManualHeartbeat(context: Context, sessionManager: SessionManager) {
+        viewModelScope.launch {
+            val deviceInfo = getDeviceInfo(context)
+            val locationHelper = LocationHelper(context)
+            sendHeartbeat(locationHelper, sessionManager, deviceInfo)
+        }
+    }
+
+    suspend fun sendHeartbeat(
         locationHelper: LocationHelper,
         sessionManager: SessionManager,
         deviceInfo: DeviceInfo

@@ -76,6 +76,7 @@ import com.sifa.sifa_go.ui.views.HistoryScreen
 import com.sifa.sifa_go.ui.views.HomeScreen
 import com.sifa.sifa_go.ui.views.ProfileScreen
 import com.sifa.sifa_go.ui.views.OverviewScreen
+import com.sifa.sifa_go.viewmodel.AuthViewModel
 import com.sifa.sifa_go.viewmodel.CoreViewModel
 import com.sifa.sifa_go.viewmodel.PresenceViewModel
 
@@ -124,6 +125,8 @@ fun AppNavigation() {
             NavHost(navController = rootNavController, startDestination = "check_auth") {
             // RUTA DE DECISIÓN (Invisible para el usuario)
             composable("check_auth") {
+                val authViewModel: AuthViewModel = viewModel()
+
                 LaunchedEffect(Unit) {
                     if (sessionManager.hasValidSession()) {
                         // Intentar refresh proactivo antes de mostrar biometría
@@ -152,6 +155,7 @@ fun AppNavigation() {
                         BiometricHelper.authenticate(
                             context = context,
                             onSuccess = {
+                                authViewModel.registerDevice()
                                 rootNavController.navigate("main_app") {
                                     popUpTo("check_auth") { inclusive = true }
                                 }
@@ -637,7 +641,10 @@ fun MainAppNavigation(
                 enterTransition = { slideInVertically(tween(350)) { it / 6 } + fadeIn(tween(250)) },
                 exitTransition = { fadeOut(tween(200)) }
             ) {
-                OverviewScreen(sifaViewModel = sifaViewModel)
+                OverviewScreen(
+                    sifaViewModel = sifaViewModel,
+                    presenceViewModel = presenceViewModel
+                )
             }
 
             composable(
