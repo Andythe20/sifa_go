@@ -1,6 +1,7 @@
 package com.sifa.sifa_go
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -13,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
+import com.sifa.sifa_go.core.utils.BiometricHelper
 import com.sifa.sifa_go.ui.navigation.AppNavigation
 import com.sifa.sifa_go.ui.theme.SIFA_GOTheme
 
@@ -37,6 +39,12 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
+    }
+
+    @Deprecated("Usado para compatibilidad con Android 7 (KeyguardManager)")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        BiometricHelper.handleActivityResult(requestCode, resultCode, data)
     }
 
     private fun requestNotificationPermission() {
