@@ -476,8 +476,8 @@ fun TicketScreen(
     ScrollIndicator(
         scrollState = scrollState,
         modifier = Modifier
-            .align(Alignment.BottomEnd)
-            .padding(end = 20.dp, bottom = 20.dp)
+            .align(Alignment.CenterEnd)
+            .padding(end = 20.dp)
     )
 }
 }
