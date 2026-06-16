@@ -3,7 +3,6 @@ package com.sifa.sifa_go.core.utils
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
-import android.hardware.fingerprint.FingerprintManager
 import android.os.Build
 import android.util.Log
 import androidx.biometric.BiometricManager
@@ -100,58 +99,42 @@ object BiometricHelper {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun authenticateLegacy(
         activity: FragmentActivity,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        @Suppress("DEPRECATION")
-        val fingerprintManager = activity.getSystemService(Context.FINGERPRINT_SERVICE)
-            as? FingerprintManager
-
-        val hasFingerprint = fingerprintManager != null &&
-            fingerprintManager.isHardwareDetected &&
-            fingerprintManager.hasEnrolledFingerprints()
-
-        if (hasFingerprint) {
-            try {
-                val executor = ContextCompat.getMainExecutor(activity)
-                val prompt = BiometricPrompt(activity, executor,
-                    object : BiometricPrompt.AuthenticationCallback() {
-                        override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                            super.onAuthenticationError(errorCode, errString)
-                            onError(errString.toString())
-                        }
-
-                        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                            super.onAuthenticationSucceeded(result)
-                            onSuccess()
-                        }
-                    }
-                )
-                prompt.authenticate(
-                    BiometricPrompt.PromptInfo.Builder()
-                        .setTitle("Acceso Seguro SIFA GO")
-                        .setSubtitle("Usa tu huella para acceder como fiscalizador")
-                        .setNegativeButtonText("Cancelar")
-                        .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-                        .build()
-                )
-                return
-            } catch (e: Exception) {
-                Log.e(TAG, "Fingerprint prompt failed on legacy device", e)
-            }
+        val keyguardManager = activity.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+        if (keyguardManager == null || !keyguardManager.isDeviceSecure) {
+            onError("No hay PIN, patrón o contraseña configurados en el dispositivo.")
+            return
         }
 
-        showDeviceCredentialPrompt(activity, onSuccess, onError)
+        try {
+            val intent = keyguardManager.createConfirmDeviceCredentialIntent(
+                "Acceso Seguro SIFA GO",
+                "Usa tu huella o ingresa tu PIN para acceder como fiscalizador"
+            )
+            if (intent != null) {
+                pendingSuccess = onSuccess
+                pendingError = onError
+                activity.startActivityForResult(intent, REQUEST_CODE_DEVICE_CREDENTIAL)
+            } else {
+                onError("No se pudo iniciar la autenticación.")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Device credential prompt failed", e)
+            onError("Error al iniciar autenticación por credenciales.")
+        }
     }
 
+    @Suppress("DEPRECATION")
     private fun showDeviceCredentialPrompt(
         activity: FragmentActivity,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        @Suppress("DEPRECATION")
         val keyguardManager = activity.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
         if (keyguardManager == null || !keyguardManager.isDeviceSecure) {
             onError("No hay PIN, patrón o contraseña configurados en el dispositivo.")
@@ -168,7 +151,7 @@ object BiometricHelper {
                 pendingError = onError
                 activity.startActivityForResult(intent, REQUEST_CODE_DEVICE_CREDENTIAL)
             } else {
-                onError("No se pudo iniciar la autenticación por credenciales.")
+                onError("No se pudo iniciar la autenticación.")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Device credential prompt failed", e)
