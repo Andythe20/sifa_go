@@ -97,10 +97,6 @@ fun LiveScannerScreen(
         )
     )
 
-    LaunchedEffect(Unit) {
-        permissionState.launchMultiplePermissionRequest()
-    }
-
     LaunchedEffect(permissionState.allPermissionsGranted) {
         if (permissionState.allPermissionsGranted) {
             onStartGpsCalibration()
