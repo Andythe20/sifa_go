@@ -2,6 +2,9 @@ package com.sifa.sifa_go.ui.views
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.util.Log
 import android.view.ViewGroup
 import androidx.camera.core.ImageCapture
@@ -97,10 +100,6 @@ fun LiveScannerScreen(
         )
     )
 
-    LaunchedEffect(Unit) {
-        permissionState.launchMultiplePermissionRequest()
-    }
-
     LaunchedEffect(permissionState.allPermissionsGranted) {
         if (permissionState.allPermissionsGranted) {
             onStartGpsCalibration()
@@ -182,8 +181,19 @@ fun LiveScannerScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("La aplicación necesita acceso a la cámara y el GPS del dispositivo para escanear patentes.", style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.height(24.dp))
-                        Button(onClick = { permissionState.launchMultiplePermissionRequest() }) {
-                            Text("Conceder permiso")
+                        Button(onClick = {
+                            if (permissionState.shouldShowRationale) {
+                                permissionState.launchMultiplePermissionRequest()
+                            } else {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.fromParts("package", context.packageName, null)
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                )
+                            }
+                        }) {
+                            Text(if (permissionState.shouldShowRationale) "Conceder permiso" else "Ir a configuración")
                         }
                     }
                 }

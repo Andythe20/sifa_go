@@ -1,3 +1,5 @@
+@file:OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
+
 package com.sifa.sifa_go.ui.navigation
 
 import androidx.camera.view.LifecycleCameraController
@@ -61,10 +63,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import java.io.File
+import android.Manifest
 import android.util.Log
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.graphics.Color
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.sifa.sifa_go.ui.views.LoginScreen
 import com.sifa.sifa_go.ui.views.RecoveryScreen
 import com.sifa.sifa_go.viewmodel.SifaViewModel
@@ -217,6 +222,26 @@ fun AppNavigation() {
                 val context = LocalContext.current
 
                 val presenceViewModel: PresenceViewModel = viewModel()
+
+                val permissionsState = rememberMultiplePermissionsState(
+                    permissions = listOf(
+                        Manifest.permission.CAMERA,
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
+
+                LaunchedEffect(Unit) {
+                    if (!permissionsState.allPermissionsGranted) {
+                        permissionsState.launchMultiplePermissionRequest()
+                    }
+                }
+
+                LaunchedEffect(permissionsState.allPermissionsGranted) {
+                    if (permissionsState.allPermissionsGranted) {
+                        presenceViewModel.sendManualHeartbeat(context, sessionManager)
+                    }
+                }
 
                 LaunchedEffect(Unit) {
                     presenceViewModel.startHeartbeatEngine(context, sessionManager)
