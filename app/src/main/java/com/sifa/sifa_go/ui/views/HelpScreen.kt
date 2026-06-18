@@ -1,6 +1,7 @@
 package com.sifa.sifa_go.ui.views
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,16 +29,27 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sifa.sifa_go.core.network.ServerConfig
+import com.sifa.sifa_go.core.preferences.AppPreferences
 import com.sifa.sifa_go.core.utils.getAppVersionInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -131,6 +143,11 @@ fun HelpScreen(
                 description = "En la sección Historial podrás revisar registros anteriores y validar el estado de sincronización."
             )
 
+            // ... (keep previous cards)
+            
+            var tapCount by remember { mutableIntStateOf(0) }
+            var showConfigDialog by remember { mutableStateOf(false) }
+
             HelpCard(
                 icon = {
                     Icon(
@@ -139,10 +156,41 @@ fun HelpScreen(
                     )
                 },
                 title = "Problemas frecuentes",
-                description = "Si la aplicación no responde, verifica tu conexión a internet o reinicia la sesión desde Perfil."
+                description = "Si la aplicación no responde, verifica tu conexión a internet o reinicia la sesión desde Perfil.",
+                modifier = Modifier.clickable {
+                    tapCount++
+                    if (tapCount >= 5) {
+                        showConfigDialog = true
+                        tapCount = 0
+                    }
+                }
             )
 
+            if (showConfigDialog) {
+                var newUrl by remember { mutableStateOf(AppPreferences.baseUrl) }
+                AlertDialog(
+                    onDismissRequest = { showConfigDialog = false },
+                    title = { Text("Configurar URL") },
+                    text = {
+                        OutlinedTextField(
+                            value = newUrl,
+                            onValueChange = { newUrl = it },
+                            label = { Text("URL del Servidor") }
+                        )
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            AppPreferences.baseUrl = newUrl
+                            showConfigDialog = false
+                        }) {
+                            Text("Guardar")
+                        }
+                    }
+                )
+            }
+
             val appInfo = getAppVersionInfo(LocalContext.current)
+
             Text(
                 text = "v${appInfo.versionName} (build ${appInfo.versionCode})",
                 style = MaterialTheme.typography.bodySmall,
@@ -156,10 +204,11 @@ fun HelpScreen(
 fun HelpCard(
     icon: @Composable () -> Unit,
     title: String,
-    description: String
+    description: String,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface

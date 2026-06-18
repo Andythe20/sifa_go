@@ -5,6 +5,7 @@ import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 import com.sifa.sifa_go.core.network.NetworkModule
+import com.sifa.sifa_go.core.preferences.AppPreferences
 import com.sifa.sifa_go.domain.push.PushToken
 import com.sifa.sifa_go.domain.push.PushTokenRepository
 import com.sifa.sifa_go.infrastructure.push.repository.SharedPreferencesPushTokenRepository
@@ -23,6 +24,7 @@ class SifaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        AppPreferences.init(this)
         initNetworkModule()
         initFirebase()
         initPushModule()
