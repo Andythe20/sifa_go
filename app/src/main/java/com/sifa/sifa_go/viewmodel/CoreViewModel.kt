@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import com.sifa.sifa_go.core.image.toCleanMultipartPart
 import com.sifa.sifa_go.core.network.CoreRetrofitClient
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.PlateInfoResponse
@@ -14,11 +15,13 @@ import com.sifa.sifa_go.data.model.TipoInfraccionResponse
 import com.sifa.sifa_go.data.model.InfraccionCreateRequest
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 import java.io.File
+import java.time.DayOfWeek
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
 
 class CoreViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -43,12 +46,7 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
             vehicleData = null
 
             try {
-                // Obtenemos el token guardado en el celular
-                val token = sessionManager.getToken() ?: ""
-
-                // Hacemos la petición añadiendo "Bearer " al inicio del token
                 val response = CoreRetrofitClient.apiService.getPlateInfo(
-                    token = "Bearer $token",
                     id = plate
                 )
 
@@ -81,9 +79,19 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             isLoadingTipos = true
             try {
-                val token = sessionManager.getToken() ?: ""
-                // Llamamos al nuevo endpoint
-                tiposInfraccion = CoreRetrofitClient.apiService.getAllTipoInfracciones("Bearer $token")
+                val paginatedResponse = CoreRetrofitClient.apiService.getAllTipoInfracciones()
+
+                if (paginatedResponse.isSuccessful){
+                    // Extraemos la lista plana desde la llave 'content'
+                    val pageResponse = paginatedResponse.body()
+
+                    // Si por alguna razón la respuesta completa o el content vienen nulos,
+                    // usamos el operador elvis (?:) para asignar una lista vacía segura.
+                    tiposInfraccion = pageResponse?.content ?: emptyList()
+                } else {
+                    errorMessage = "Error del servidor: ${paginatedResponse.code()}"
+                }
+
             } catch (e: HttpException) {
                 // Retrofit lanza HttpException cuando el backend responde con un error (400, 404, 500)
                 errorMessage = when (e.code()) {
@@ -119,22 +127,40 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
             submitSuccess = false
             
             try {
-                val token = sessionManager.getToken() ?: ""
+                //  Primero parsearemos la fecha de la infracción que viene en el request en formato ISO
+                val fechaInfraccionDateTime = LocalDateTime.parse(request.fecha)
 
-                // Convertir el DTO a JSON RequestBody
-                val jsonRequest = Gson().toJson(request)
+                // Le sumamos el margen mínimo legal de 2 semanas (14 días)
+                val fechaMinimaMargen = fechaInfraccionDateTime.plusDays(14)
+
+                // Buscamos el próximo jueves calendario a partir de esa fecha límite.
+                // Si la fecha mínima ya cae un día jueves, TemporalAdjusters.nextOrSame se queda en ese mismo día.
+                val juevesCitacion = fechaMinimaMargen.with(TemporalAdjusters.nextOrSame(DayOfWeek.THURSDAY))
+
+                // 4. Fijamos la hora reglamentaria exigida por el JPL (09:00:00.000000)
+                val fechaCitacionFinal = juevesCitacion
+                    .withHour(9)
+                    .withMinute(0)
+                    .withSecond(0)
+                    .withNano(0)
+
+                // Lo formateamos a String ISO 8601 con precisión de microsegundos para que Spring Boot lo reciba limpio
+                val formatterISO = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+                val fechaCitacionString = fechaCitacionFinal.format(formatterISO)
+
+                // Creamos una copia del request original inyectándole el string calculado
+                val requestConCitacion = request.copy(fechaCitacion = fechaCitacionString)
+                println("Citación calculada con éxito: $fechaCitacionString")
+
+                // Convertir el DTO a JSON RequestBody, inyecando el request con la citacion
+                val jsonRequest = Gson().toJson(requestConCitacion)
                     .toRequestBody("application/json".toMediaTypeOrNull())
 
-                // Convertir la lista de rutas en MultipartBody.Part
                 val fotoParts = imagePaths.map { path ->
-                    val file = File(path)
-                    val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
-                    MultipartBody.Part.createFormData("fotos", file.name, requestFile)
+                    File(path).toCleanMultipartPart("fotos")
                 }
-
                 // Enviar la petición
                 val response = CoreRetrofitClient.apiService.createInfraccion(
-                    token = "Bearer $token",
                     request = jsonRequest,
                     fotos = fotoParts
                 )

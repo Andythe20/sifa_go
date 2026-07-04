@@ -7,6 +7,21 @@ data class LoginRequest(
 
 data class LoginResponse(
     val accessToken: String,
+    val refreshToken: String,
+    val tokenType: String,
+    val sub: String,
+    val iat: Long,
+    val exp: Long,
+    val roles: List<String>
+)
+
+data class RefreshTokenRequest(
+    val refreshToken: String
+)
+
+data class RefreshTokenResponse(
+    val accessToken: String,
+    val refreshToken: String,
     val tokenType: String,
     val sub: String,
     val iat: Long,
@@ -15,17 +30,40 @@ data class LoginResponse(
 )
 
 data class UserResponse(
-    val rut: String,
-    val dv: String,
-    val name: String,
-    val lastName: String,
-    val birthDate: String,
-    val email: String,
-    val phone: String,
-    val role: String,
-    val createdAt: String,
-    val modifiedAt: String,
+    val rut: String?,
+    val dv: String?,
+    val name: String?,
+    val lastName: String?,
+    val birthDate: String?,
+    val email: String?,
+    val phone: String?,
+    val role: String?,
+    val createdAt: String?,
+    val modifiedAt: String?,
     val active: Boolean
+)
+
+data class ChangePasswordRequest(
+    val oldPassword: String,
+    val newPassword: String
+)
+
+data class ChangePasswordResponse(
+    val message: String
+)
+
+data class PasswordRecoveryRequest(
+    val email: String
+)
+
+data class PasswordResetRequest(
+    val email: String,
+    val code: String,
+    val newPassword: String
+)
+
+data class PasswordRecoveryResponse(
+    val message: String
 )
 
 sealed class LoginResult {

@@ -8,15 +8,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sifa.sifa_go.core.image.toCleanMultipartPart
 import com.sifa.sifa_go.core.network.CoreRetrofitClient
 import com.sifa.sifa_go.core.network.RetrofitClient
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.InfraccionHistoryItem
 import com.sifa.sifa_go.exception.NetworkErrorHandler
 import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 
 class SifaViewModel(application: Application) : AndroidViewModel(application) {
@@ -26,6 +24,9 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
 
     // "guarda" el trabajo de la corrutina de la calibracion del gps
     private var gpsTimerJob: kotlinx.coroutines.Job? = null
+
+    // para saber si la patente se ingresará manualmente
+    var isManualEntry by mutableStateOf(false)
 
     // Variable que guardará la ruta de la foto de forma global
     // Usamos mutableStateOf para que la interfaz se actualice si esto cambia
@@ -60,10 +61,20 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
     // Contador para los logs de calibración
     var gpsAttemptCount by mutableIntStateOf(0)
 
-    // Variables para el historial de infracciones
+    // Nombre del usuario logueado
+    var currentUsername by mutableStateOf(sessionManager.getUsername() ?: "")
+
+    fun getSessionIat(): Long = sessionManager.getTokenIat()
+
+    // Variables para el historial de infracciones (incluye paginacion)
     var infractionsHistory by mutableStateOf<List<InfraccionHistoryItem>>(emptyList())
     var historyLoading by mutableStateOf(false)
     var historyError by mutableStateOf<String?>(null)
+    var currentPage by mutableIntStateOf(0)
+    var totalPages by mutableIntStateOf(0)
+    var totalElements by mutableIntStateOf(0)
+    var isFirstPage by mutableStateOf(true)
+    var isLastPage by mutableStateOf(true)
 
     fun removeEvidencePhoto(path: String) {
         com.sifa.sifa_go.core.utils.ImageUtils.deleteImageFile(path)
@@ -129,6 +140,20 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Función para limpiar los datos cuando se termine una multa o se cancele
+    fun refreshCurrentLocation() {
+        viewModelScope.launch {
+            val location = locationHelper.getLocation()
+            if (location != null) {
+                latitude = location.latitude
+                longitude = location.longitude
+                gpsAccuracy = location.accuracy
+                locationHelper.getAddressFromLocation(location.latitude, location.longitude) { address ->
+                    currentAddress = address
+                }
+            }
+        }
+    }
+
     fun clearProcess() {
         // Borramos los archivos físicos primero
         evidencePhotoPaths.forEach { path ->
@@ -148,6 +173,7 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
         gpsAttemptCount = 0
         isGPSCalibrating = false
         gpsTimerJob?.cancel()
+        isManualEntry = false
     }
 
     // Función para enviar la imagen
@@ -158,18 +184,10 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
             detectedPlate = null
             detectionError = null
             try {
-                // Obtenemos el token guardado en el celular
-                val token = sessionManager.getToken() ?: ""
-
                 val file = File(filePath)
+                val body = file.toCleanMultipartPart("file")
 
-                // Preparamos el archivo para enviarlo por HTTP
-                val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
-                val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
-
-                // Hacemos la llamada a la API incluyendo el token
                 val response = RetrofitClient.apiService.detectPlate(
-                    token = "Bearer $token",
                     file = body
                 )
 
@@ -178,7 +196,7 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
 
                 if (plateResult != null && plateResult.success && !plateResult.plate.isNullOrEmpty()) {
                     // IA exitosa
-                    detectedPlate = plateResult.plate
+                    detectedPlate = plateResult.plate.trim()
                 } else {
                     // La IA respondió, pero no encontró ninguna patente legible en la foto
                     detectionError = "No se logró leer la patente en la fotografía."
@@ -194,29 +212,41 @@ class SifaViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Función para cargar el historial de infracciones desde el backend
-    fun loadInfractionsHistory(date: String) {
+    /**
+     * Carga el historial de infracciones paginado desde el backend.
+     * Actualiza [infractionsHistory], [currentPage], [totalPages], [totalElements],
+     * [isFirstPage] e [isLastPage] segun la respuesta.
+     *
+     * @param date filtro por fecha (YYYY-MM-DD)
+     * @param page numero de pagina a solicitar (0-indexado, default 0)
+     */
+    fun loadInfractionsHistory(date: String, page: Int = 0) {
         viewModelScope.launch {
 
             historyLoading = true
             historyError = null
 
             try {
-                val token = sessionManager.getToken() ?: ""
                 val user = sessionManager.getUsername() ?: ""
                 val response = CoreRetrofitClient.apiService.getInfractionsHistory(
-                    token = "Bearer $token",
-                    date = date,
-                    user = user
+                    startDate = date,
+                    endDate = date,
+                    user = user,
+                    page = page,
+                    size = 10
                 )
 
                 if (response.isSuccessful) {
-                    infractionsHistory =
-                        if (response.code() == 204) {
-                            emptyList()
-                        } else {
-                            response.body() ?: emptyList()
-                        }
+                    val pageResponse = response.body()
+
+                    infractionsHistory = (pageResponse?.content ?: emptyList())
+                        .filter { it.id != null }
+                        .sortedByDescending { it.id!!.toIntOrNull() ?: 0 }
+                    currentPage = pageResponse?.pageNumber ?: 0
+                    totalPages = pageResponse?.totalPages ?: 0
+                    totalElements = pageResponse?.totalElements ?: 0
+                    isFirstPage = pageResponse?.isFirst ?: true
+                    isLastPage = pageResponse?.isLast ?: true
                 } else {
                     historyError = "Error del servidor: ${response.code()}"
                 }

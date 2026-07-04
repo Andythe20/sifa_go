@@ -1,20 +1,30 @@
 package com.sifa.sifa_go.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sifa.sifa_go.core.network.AuthApiService
 import com.sifa.sifa_go.core.network.AuthRetrofitClient
+import com.sifa.sifa_go.core.network.NetworkModule
 import com.sifa.sifa_go.core.utils.SessionManager
 import com.sifa.sifa_go.data.model.UserResponse
+import com.sifa.sifa_go.domain.repository.SessionRepository
 import com.sifa.sifa_go.exception.NetworkErrorHandler
 import kotlinx.coroutines.launch
 
-class ProfileViewModel(application: Application) : AndroidViewModel(application) {
+class ProfileViewModel @JvmOverloads constructor(
+    application: Application,
+    private val sessionRepository: SessionRepository = SessionManager(application),
+    private val apiService: AuthApiService? = null
+) : AndroidViewModel(application) {
 
-    private val sessionManager = SessionManager(application)
+    private val resolvedApiService: AuthApiService by lazy {
+        apiService ?: AuthRetrofitClient.apiService
+    }
 
     var user by mutableStateOf<UserResponse?>(null)
         private set
@@ -26,20 +36,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         private set
 
     init {
+        NetworkModule.init(application)
         loadUserProfile()
     }
 
     fun loadUserProfile() {
-        val email = sessionManager.getUsername()
-        val token = sessionManager.getToken()
+        val email = sessionRepository.getUsername()
 
         if (email.isNullOrEmpty()) {
             error = "No se encontró el email del usuario"
-            return
-        }
-
-        if (token.isNullOrEmpty()) {
-            error = "No se encontró el token de sesión"
             return
         }
 
@@ -48,15 +53,18 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             error = null
 
             try {
-                val authToken = "Bearer $token"
-                val response = AuthRetrofitClient.apiService.getUserByEmail(authToken, email)
+                Log.d("ProfileVM", "Fetching profile for email: $email")
+                val response = resolvedApiService.getUserByEmail(email)
 
                 if (response.isSuccessful) {
                     user = response.body()
+                    Log.d("ProfileVM", "Profile loaded successfully")
                 } else {
                     error = NetworkErrorHandler.getErrorMessage(response.code())
+                    Log.d("ProfileVM", "Profile fetch failed: ${response.code()}")
                 }
             } catch (e: Exception) {
+                Log.e("ProfileVM", "Profile fetch exception", e)
                 error = NetworkErrorHandler.getExceptionMessage(e)
             } finally {
                 isLoading = false

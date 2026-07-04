@@ -1,39 +1,62 @@
 package com.sifa.sifa_go.core.network
 
+import com.sifa.sifa_go.data.model.ChangePasswordRequest
+import com.sifa.sifa_go.data.model.ChangePasswordResponse
 import com.sifa.sifa_go.data.model.LoginRequest
 import com.sifa.sifa_go.data.model.LoginResponse
+import com.sifa.sifa_go.data.model.PasswordRecoveryRequest
+import com.sifa.sifa_go.data.model.PasswordRecoveryResponse
+import com.sifa.sifa_go.data.model.PasswordResetRequest
+import com.sifa.sifa_go.data.model.RefreshTokenRequest
 import com.sifa.sifa_go.data.model.UserResponse
 import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Headers
 import retrofit2.http.POST
-import retrofit2.http.Header
 import retrofit2.http.Path
 
 interface AuthApiService {
+    @Headers("X-Client-Origin: mobile")
     @POST("auth/api/v1/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
+    @Headers("X-Client-Origin: mobile")
+    @POST("auth/api/v1/refresh")
+    suspend fun refresh(@Body request: RefreshTokenRequest): Response<LoginResponse>
+
     @GET("auth/api/v1/users/email/{email}")
     suspend fun getUserByEmail(
-        @Header("Authorization") token: String,
         @Path("email") email: String
     ): Response<UserResponse>
+
+    @POST("auth/api/v1/change-password")
+    suspend fun changePassword(
+        @Body request: ChangePasswordRequest
+    ): Response<ChangePasswordResponse>
+
+    @POST("auth/api/v1/recovery/request")
+    suspend fun requestRecovery(
+        @Body request: PasswordRecoveryRequest
+    ): Response<PasswordRecoveryResponse>
+
+    @POST("auth/api/v1/recovery/reset")
+    suspend fun resetPassword(
+        @Body request: PasswordResetRequest
+    ): Response<PasswordRecoveryResponse>
 }
 
 object AuthRetrofitClient {
-    // Puerto 8081 para el Fake Auth Service
-    // Modificar ip dependiendo a qué red te conectes
-    // En local tanto tu móvil como el pc deben estar conectados al mismo wi-fi
-    private const val BASE_URL = "http://44.196.188.33"
+    private var _apiService: AuthApiService? = null
 
-    val apiService: AuthApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(AuthApiService::class.java)
+    val apiService: AuthApiService
+        get() = _apiService ?: NetworkModule.retrofit.create(AuthApiService::class.java)
+
+    fun setApiService(service: AuthApiService) {
+        _apiService = service
+    }
+
+    fun resetApiService() {
+        _apiService = null
     }
 }

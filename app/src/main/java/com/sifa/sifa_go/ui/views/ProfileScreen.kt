@@ -19,6 +19,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Cake
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
@@ -26,128 +28,167 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sifa.sifa_go.data.model.UserResponse
+import com.sifa.sifa_go.ui.components.ErrorView
+import com.sifa.sifa_go.ui.components.LogoutConfirmationDialog
 import com.sifa.sifa_go.viewmodel.ProfileViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     profileViewModel: ProfileViewModel = viewModel(),
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onChangePassword: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var isRefreshing by remember { mutableStateOf(false) }
 
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Cerrar Sesión") },
-            text = { Text("¿Estás seguro de que deseas cerrar sesión?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showLogoutDialog = false
-                        onLogout()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Text("Cerrar Sesión")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { showLogoutDialog = false }
-                ) {
-                    Text("Cancelar")
-                }
-            }
-        )
+    if (!profileViewModel.isLoading && isRefreshing) {
+        isRefreshing = false
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-            .background(MaterialTheme.colorScheme.background),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        when {
-            profileViewModel.isLoading && profileViewModel.user == null -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                profileViewModel.loadUserProfile()
             }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
-            profileViewModel.error != null && profileViewModel.user == null -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = profileViewModel.error ?: "Error desconocido",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { profileViewModel.loadUserProfile() }) {
-                            Text("Reintentar")
-                        }
+    LogoutConfirmationDialog(
+        show = showLogoutDialog,
+        onConfirm = {
+            showLogoutDialog = false
+            onLogout()
+        },
+        onDismiss = { showLogoutDialog = false }
+    )
+
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            profileViewModel.loadUserProfile()
+        },
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+                .background(MaterialTheme.colorScheme.background),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            when {
+                profileViewModel.isLoading && profileViewModel.user == null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+
+                profileViewModel.error != null && profileViewModel.user == null -> {
+                    ErrorView(
+                        error = profileViewModel.error,
+                        onRetry = { profileViewModel.loadUserProfile() },
+                        fullScreen = true
+                    )
+                }
+
+                else -> {
+                    profileViewModel.user?.let { user ->
+                        ProfileContent(user = user)
                     }
                 }
             }
 
-            else -> {
-                profileViewModel.user?.let { user ->
-                    ProfileContent(user = user)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (!profileViewModel.isLoading) {
+                OutlinedButton(
+                    onClick = onChangePassword,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Cambiar Contraseña",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (!profileViewModel.isLoading) {
+                Button(
+                    onClick = { showLogoutDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ExitToApp,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Cerrar Sesión",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Button(
-            onClick = { showLogoutDialog = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error
-            ),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text(
-                text = "Cerrar Sesión",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -159,33 +200,55 @@ private fun ProfileContent(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier
-                .size(100.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "${user.name.firstOrNull() ?: ""}${user.lastName.firstOrNull() ?: ""}",
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                val initialName = user.name?.firstOrNull()?.toString() ?: ""
+                val initialLastName = user.lastName?.firstOrNull()?.toString() ?: ""
+                Text(
+                    text = "$initialName$initialLastName",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = "${user.name ?: ""} ${user.lastName ?: ""}".trim(),
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                StatusBadge(
+                    active = user.active,
+                    text = if (user.role == "USER_APP") "Fiscalizador" else (user.role ?: "")
+                )
+            }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "${user.name} ${user.lastName}",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        StatusBadge(active = user.active)
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -209,29 +272,7 @@ private fun ProfileContent(
                 ProfileInfoRow(
                     icon = Icons.Filled.Badge,
                     label = "RUT",
-                    value = "${user.rut}-${user.dv}"
-                )
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-
-                ProfileInfoRow(
-                    icon = Icons.Filled.Person,
-                    label = "Nombre",
-                    value = user.name
-                )
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-
-                ProfileInfoRow(
-                    icon = Icons.Filled.Person,
-                    label = "Apellido",
-                    value = user.lastName
+                    value = if (user.rut != null) "${user.rut}-${user.dv ?: ""}" else "No disponible"
                 )
 
                 HorizontalDivider(
@@ -242,30 +283,22 @@ private fun ProfileContent(
                 ProfileInfoRow(
                     icon = Icons.Filled.Email,
                     label = "Correo electrónico",
-                    value = user.email
+                    value = user.email?: "No disponible"
                 )
 
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
+                if (!user.phone.isNullOrBlank()) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
 
-                ProfileInfoRow(
-                    icon = Icons.Filled.Phone,
-                    label = "Teléfono",
-                    value = user.phone
-                )
+                    ProfileInfoRow(
+                        icon = Icons.Filled.Phone,
+                        label = "Teléfono",
+                        value = user.phone
+                    )
+                }
 
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-
-                ProfileInfoRow(
-                    icon = Icons.Filled.Shield,
-                    label = "Rol",
-                    value = if (user.role == "USER_APP") "Fiscalizador" else user.role
-                )
             }
         }
     }
@@ -306,22 +339,30 @@ private fun ProfileInfoRow(
 }
 
 @Composable
-private fun StatusBadge(active: Boolean) {
+private fun StatusBadge(active: Boolean, text: String) {
+    val iconTint = if (active) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(
-                if (active) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.errorContainer
-            )
+            .background(MaterialTheme.colorScheme.primaryContainer)
             .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
-        Text(
-            text = if (active) "Activo" else "Inactivo",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            color = if (active) MaterialTheme.colorScheme.onPrimaryContainer
-            else MaterialTheme.colorScheme.onErrorContainer
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Shield,
+                contentDescription = if (active) "Activo" else "Inactivo",
+                modifier = Modifier.size(14.dp),
+                tint = iconTint
+            )
+            Text(
+                text = text,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
     }
 }

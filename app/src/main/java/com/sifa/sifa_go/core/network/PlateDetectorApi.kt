@@ -2,9 +2,6 @@ package com.sifa.sifa_go.core.network
 
 import com.sifa.sifa_go.data.model.DetectionRootResponse
 import okhttp3.MultipartBody
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
@@ -14,23 +11,21 @@ interface SifaApiService {
     @Multipart
     @POST("/plate/api/v1/detect")
     suspend fun detectPlate(
-        @Header("Authorization") token: String,
         @Part file: MultipartBody.Part
     ): DetectionRootResponse // Esperamos una lista como respuesta
 }
 
-// 2. Configuramos el cliente con tu IP actual
 object RetrofitClient {
-    // IP apuntando al puerto expuesto por el docker
-    // Modificar ip dependiendo a qué red te conectes
-    // En local tanto tu móvil como el pc deben estar conectados al mismo wi-fi
-    private const val BASE_URL = "http://44.196.188.33"
+    private var _apiService: SifaApiService? = null
 
-    val apiService: SifaApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(SifaApiService::class.java)
+    val apiService: SifaApiService
+        get() = _apiService ?: NetworkModule.retrofit.create(SifaApiService::class.java)
+
+    fun setApiService(service: SifaApiService) {
+        _apiService = service
+    }
+
+    fun resetApiService() {
+        _apiService = null
     }
 }
