@@ -19,8 +19,11 @@ interface OfflineQueueRepository {
     /** Devuelve las infracciones pendientes de envío, ordenadas FIFO. */
     suspend fun getPending(): List<PendingInfraccion>
 
-    /** Marca una infracción como enviada exitosamente. */
-    suspend fun markSynced(id: Long)
+    /**
+     * Elimina físicamente una infracción ya sincronizada de la cola local.
+     * Se usa tras un envío exitoso para no acumular registros que ocupen espacio.
+     */
+    suspend fun deleteById(id: Long)
 
     /** Marca una infracción como fallida (no se puede reconstruir el request o el backend rechazó). */
     suspend fun markFailed(id: Long, reason: String? = null)

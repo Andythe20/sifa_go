@@ -17,6 +17,7 @@ import com.sifa.sifa_go.data.model.InfraccionCreateRequest
 import com.sifa.sifa_go.infrastructure.offline.OfflineInfraccionSender
 import com.sifa.sifa_go.infrastructure.offline.OfflineQueueRepositoryImpl
 import com.sifa.sifa_go.infrastructure.offline.SyncResult
+import com.sifa.sifa_go.domain.model.PendingInfraccion
 import com.sifa.sifa_go.domain.repository.OfflineQueueRepository
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
@@ -54,11 +55,17 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
     var pendingCount by mutableIntStateOf(0)
         private set
 
+    /** Infracciones aún no enviadas al backend (cola offline), para reflejarlas en la UI. */
+    var pendingInfracciones by mutableStateOf<List<PendingInfraccion>>(emptyList())
+        private set
+
     init {
         viewModelScope.launch {
             offlineQueueRepository.observeSyncableQueue()
                 .collect { queued ->
-                    pendingCount = queued.count { it.status != SyncStatus.SYNCED }
+                    val onlyPending = queued.filter { it.status == SyncStatus.PENDING }
+                    pendingInfracciones = onlyPending
+                    pendingCount = onlyPending.size
                 }
         }
     }
@@ -173,7 +180,9 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
                 val result = OfflineInfraccionSender.send(requestConCitacion, queueImagePaths)
                 when (result) {
                     SyncResult.Success -> {
-                        offlineQueueRepository.markSynced(pendingId)
+                        // Envío inmediato exitoso: ya no es necesario conservar el registro ni sus copias.
+                        queueImagePaths.forEach { com.sifa.sifa_go.core.utils.ImageUtils.deleteImageFile(it) }
+                        offlineQueueRepository.deleteById(pendingId)
                         println("Infracción enviada exitosamente: $requestConCitacion")
                         submitSuccess = true
                     }

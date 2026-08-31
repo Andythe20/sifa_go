@@ -24,8 +24,8 @@ class OfflineQueueRepositoryImpl(
         return PendingInfraccionMapper.toDomainList(dao.getPending())
     }
 
-    override suspend fun markSynced(id: Long) {
-        dao.markSynced(id)
+    override suspend fun deleteById(id: Long) {
+        dao.deleteById(id)
     }
 
     override suspend fun markFailed(id: Long, reason: String?) {

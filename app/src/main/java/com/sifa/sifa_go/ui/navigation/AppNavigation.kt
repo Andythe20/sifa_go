@@ -659,7 +659,10 @@ fun MainAppNavigation(
                 enterTransition = { slideInVertically(tween(350)) { it / 6 } + fadeIn(tween(250)) },
                 exitTransition = { fadeOut(tween(200)) }
             ) {
-                HistoryScreen(sifaViewModel = sifaViewModel)
+                HistoryScreen(
+                    sifaViewModel = sifaViewModel,
+                    coreViewModel = coreViewModel
+                )
             }
 
             composable(

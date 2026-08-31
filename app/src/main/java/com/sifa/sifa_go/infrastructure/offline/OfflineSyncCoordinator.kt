@@ -60,9 +60,9 @@ class OfflineSyncCoordinator(
 
                 when (val result = OfflineInfraccionSender.send(next.request, next.imagePaths)) {
                     SyncResult.Success -> {
-                        dao.markSynced(next.id)
-                        // La cola ya envió exitosamente: liberamos las copias de fotos.
+                        // La cola ya envió exitosamente: liberamos las copias de fotos y el registro.
                         next.imagePaths.forEach { com.sifa.sifa_go.core.utils.ImageUtils.deleteImageFile(it) }
+                        dao.deleteById(next.id)
                     }
                     is SyncResult.PermanentError -> dao.markFailed(next.id, result.failureReason)
                     is SyncResult.TransientNetworkError -> return@withContext

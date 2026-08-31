@@ -67,10 +67,10 @@ class OfflineQueueRepositoryImplTest {
     }
 
     @Test
-    fun `markSynced delegates to dao`() = runTest {
+    fun `deleteById delegates to dao`() = runTest {
         val repo = repoUnderTest()
-        repo.markSynced(7L)
-        coVerify { dao.markSynced(7L) }
+        repo.deleteById(7L)
+        coVerify { dao.deleteById(7L) }
     }
 
     @Test

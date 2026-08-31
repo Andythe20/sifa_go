@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Policy
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -51,10 +53,13 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.SubcomposeAsyncImage
 import com.sifa.sifa_go.data.model.InfraccionHistoryItem
+import com.sifa.sifa_go.domain.model.PendingInfraccion
 import com.sifa.sifa_go.ui.components.ErrorView
 import com.sifa.sifa_go.ui.components.PaginationBar
+import com.sifa.sifa_go.viewmodel.CoreViewModel
 import com.sifa.sifa_go.viewmodel.SifaViewModel
 import kotlinx.coroutines.launch
+import java.io.File
 import java.text.SimpleDateFormat
 import kotlin.math.roundToInt
 import java.util.*
@@ -62,11 +67,13 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
-    sifaViewModel: SifaViewModel
+    sifaViewModel: SifaViewModel,
+    coreViewModel: CoreViewModel
 ) {
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     val today = dateFormat.format(Date())
     var isRefreshing by remember { mutableStateOf(false) }
+    val pendingInfracciones = coreViewModel.pendingInfracciones
 
     LaunchedEffect(Unit) {
         sifaViewModel.loadInfractionsHistory(today)
@@ -146,90 +153,75 @@ Spacer(modifier = Modifier.height(16.dp))
             },
             modifier = Modifier.fillMaxSize()
         ) {
-            when {
-                sifaViewModel.historyLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                    }
-                }
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // La sección de pendientes es local: se muestra siempre, haya o no conexión.
+                pendingQueueSection(pendingInfracciones)
 
-                sifaViewModel.historyError != null -> {
-                    ErrorView(
-                        error = sifaViewModel.historyError,
-                        onRetry = { sifaViewModel.loadInfractionsHistory(today) },
-                        fullScreen = true
-                    )
-                }
-
-                sifaViewModel.infractionsHistory.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "No has registrado infracciones hoy",
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 16.sp
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Las infracciones que crees aparecerán aquí",
-                                color = Color.Gray.copy(alpha = 0.7f),
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
-                }
-
-                else -> {
-                    if (sifaViewModel.totalPages > 1) {
-                        val pagerState = rememberPagerState(
-                            initialPage = sifaViewModel.currentPage,
-                            pageCount = { sifaViewModel.totalPages }
-                        )
-                        val pagerScope = rememberCoroutineScope()
-
-                        LaunchedEffect(pagerState.currentPage) {
-                            if (pagerState.currentPage != sifaViewModel.currentPage) {
-                                sifaViewModel.loadInfractionsHistory(today, pagerState.currentPage)
-                            }
-                        }
-
-                        LaunchedEffect(sifaViewModel.currentPage) {
-                            if (sifaViewModel.currentPage != pagerState.currentPage) {
-                                pagerScope.launch {
-                                    pagerState.animateScrollToPage(sifaViewModel.currentPage)
-                                }
-                            }
-                        }
-
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.fillMaxSize()
-                        ) { _ ->
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                when {
+                    sifaViewModel.historyLoading && sifaViewModel.infractionsHistory.isEmpty() -> {
+                        item(key = "history_loading") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 32.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                items(sifaViewModel.infractionsHistory, key = { it.id ?: it.hashCode() }) { infraction ->
-                                    AnimatedCardEntry {
-                                        InfractionHistoryCard(infraction = infraction)
-                                    }
-                                }
+                                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                             }
                         }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(sifaViewModel.infractionsHistory, key = { it.id ?: it.hashCode() }) { infraction ->
+                    }
+
+                    sifaViewModel.historyError != null -> {
+                        item(key = "history_error") {
+                            ErrorView(
+                                error = sifaViewModel.historyError,
+                                onRetry = { sifaViewModel.loadInfractionsHistory(today) },
+                                fullScreen = false
+                            )
+                        }
+                    }
+
+                    sifaViewModel.infractionsHistory.isEmpty() -> {
+                        item(key = "history_empty") {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "No has registrado infracciones hoy",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 16.sp
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Las infracciones que crees aparecerán aquí",
+                                    color = Color.Gray.copy(alpha = 0.7f),
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+
+                    else -> {
+                        if (sifaViewModel.totalPages > 1) {
+                            item(key = "history_pager") {
+                                PagedInfraccionesList(
+                                    viewModel = sifaViewModel,
+                                    today = today,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        } else {
+                            items(
+                                sifaViewModel.infractionsHistory,
+                                key = { it.id ?: it.hashCode() }
+                            ) { infraction ->
                                 AnimatedCardEntry {
                                     InfractionHistoryCard(infraction = infraction)
                                 }
@@ -237,6 +229,334 @@ Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Lista paginada (HorizontalPager) de las infracciones emitidas desde el backend.
+ * Se renderiza dentro de la sección correspondiente de [HistoryScreen].
+ */
+@Composable
+private fun PagedInfraccionesList(
+    viewModel: SifaViewModel,
+    today: String,
+    modifier: Modifier = Modifier
+) {
+    val pagerState = rememberPagerState(
+        initialPage = viewModel.currentPage,
+        pageCount = { viewModel.totalPages }
+    )
+    val pagerScope = rememberCoroutineScope()
+
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage != viewModel.currentPage) {
+            viewModel.loadInfractionsHistory(today, pagerState.currentPage)
+        }
+    }
+
+    LaunchedEffect(viewModel.currentPage) {
+        if (viewModel.currentPage != pagerState.currentPage) {
+            pagerScope.launch {
+                pagerState.animateScrollToPage(viewModel.currentPage)
+            }
+        }
+    }
+
+    HorizontalPager(
+        state = pagerState,
+        modifier = modifier
+    ) { _ ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(viewModel.infractionsHistory, key = { it.id ?: it.hashCode() }) { infraction ->
+                AnimatedCardEntry {
+                    InfractionHistoryCard(infraction = infraction)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Aporta al LazyColumn el encabezado y las tarjetas de las infracciones aún no enviadas
+ * (cola offline, estado PENDING). Si no hay pendientes no emite nada.
+ */
+private fun LazyListScope.pendingQueueSection(pending: List<PendingInfraccion>) {
+    if (pending.isEmpty()) return
+
+    item(key = "pending_header") {
+        Text(
+            text = "PENDIENTES DE ENVÍO (${pending.size})",
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+        )
+    }
+
+    items(pending, key = { "pending_${it.id}" }) { infraccion ->
+        AnimatedCardEntry {
+            PendingInfraccionCard(infraccion = infraccion)
+        }
+    }
+}
+
+/**
+ * Tarjeta para una infracción guardada en la cola offline que aún no se envía al backend.
+ * Muestra los datos conocidos localmente (patente, fecha, lugar, fotos) con un estado claro
+ * de "pendiente de envío".
+ */
+@Composable
+fun PendingInfraccionCard(infraccion: PendingInfraccion) {
+    var expanded by remember { mutableStateOf(false) }
+    val pendingColor = MaterialTheme.colorScheme.tertiary
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded }
+            .border(
+                width = 1.dp,
+                color = pendingColor.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(12.dp)
+            ),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onPrimary),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "PATENTE: ${infraccion.request.patenteVehiculo}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = pendingColor.copy(alpha = 0.15f)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Sync,
+                            contentDescription = null,
+                            tint = pendingColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "PENDIENTE ENVÍO",
+                            color = pendingColor,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier.width(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Warning,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Tipo de infracción #${infraccion.request.idTipoInfraccion}",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = Color.Transparent,
+                    border = BorderStroke(1.dp, Color.Gray.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        text = formatTimestamp(infraccion.request.fecha),
+                        fontSize = 11.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier.width(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.LocationOn,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = infraccion.request.lugar.ifBlank { "Sin dirección" },
+                    fontSize = 13.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier.width(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.CameraAlt,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = buildString {
+                            val count = infraccion.imagePaths.size
+                            append(count)
+                            append(if (count == 1) " foto" else " fotos")
+                        },
+                        fontSize = 13.sp,
+                        color = Color.Gray
+                    )
+                }
+
+                ExpandChevron(expanded = expanded)
+            }
+
+            if (expanded) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (!infraccion.request.observaciones.isNullOrBlank()) {
+                    Text(
+                        text = "Observaciones: ${infraccion.request.observaciones}",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                Text(
+                    text = "Se enviará automáticamente cuando haya conexión.",
+                    fontSize = 12.sp,
+                    color = pendingColor,
+                    fontWeight = FontWeight.Medium
+                )
+
+                if (infraccion.imagePaths.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Evidencia (${infraccion.imagePaths.size}):",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LocalPhotoGallery(imagePaths = infraccion.imagePaths)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Galería de miniaturas de las fotos de evidencia locales (pendientes de envío).
+ * Carga cada archivo desde su ruta local mediante Coil.
+ */
+@Composable
+private fun LocalPhotoGallery(imagePaths: List<String>) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        imagePaths.take(3).forEach { path ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(100.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.LightGray)
+            ) {
+                SubcomposeAsyncImage(
+                    model = File(path),
+                    contentDescription = "Evidencia",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    loading = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
+                    error = {
+                        Box(
+                            modifier = Modifier.fillMaxSize().background(Color.LightGray),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Error al cargar",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                )
+            }
+        }
+        if (imagePaths.size < 3) {
+            repeat(3 - imagePaths.size) {
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }
