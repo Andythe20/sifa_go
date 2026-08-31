@@ -40,6 +40,14 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
+    /**
+     * true cuando la consulta del vehículo falló por falta de conexión/señal (no por un
+     * error del backend o una patente inválida). En ese caso [vehicleData] queda poblado
+     * con un perfil parcial (solo la patente) para permitir emitir la infracción offline.
+     */
+    var vehicleQueryFailedOffline by mutableStateOf(false)
+        private set
+
     // variables para peticion a la api core de tipos de infracciones
     var tiposInfraccion by mutableStateOf<List<TipoInfraccionResponse>>(emptyList())
     var isLoadingTipos by mutableStateOf(false)
@@ -76,6 +84,7 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
             isLoading = true
             errorMessage = null
             vehicleData = null
+            vehicleQueryFailedOffline = false
 
             try {
                 val response = CoreRetrofitClient.apiService.getPlateInfo(
@@ -96,11 +105,25 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
                 println("Core API HTTP Error: ${e.code()} - ${e.message()}")
 
             } catch (e: Exception) {
-                // Esto ocurre si no hay internet o el servidor está apagado (no hay respuesta HTTP)
+                // Esto ocurre si no hay internet o el servidor está apagado (no hay respuesta HTTP).
+                // Marcamos el caso offline y poblamos un perfil parcial (solo la patente) para
+                // permitir continuar con la emisión de la infracción sin consultar el vehículo.
+                vehicleQueryFailedOffline = true
+                vehicleData = PlateInfoResponse(
+                    patente = plate,
+                    marca = "",
+                    modelo = "",
+                    anio_fabricacion = 0,
+                    color = "",
+                    nro_motor = "",
+                    nro_serie = "",
+                    propietario = "",
+                    rut = ""
+                )
                 errorMessage = "Error de conexión. Compruebe su acceso a internet."
                 println("Core API Error de Red: $e")
 
-            }finally {
+            } finally {
                 isLoading = false
             }
         }
@@ -243,6 +266,7 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearData() {
         vehicleData = null
+        vehicleQueryFailedOffline = false
         errorMessage = null
         submitSuccess = false
         submittedOffline = false

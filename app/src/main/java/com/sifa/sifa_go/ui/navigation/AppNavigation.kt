@@ -62,6 +62,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import java.io.File
 import android.Manifest
 import android.util.Log
@@ -472,6 +475,8 @@ fun MainAppNavigation(
                     exitTransition = { fadeOut(tween(200)) }
                 ) {
                     var isConsulting by remember { mutableStateOf(false) }
+                    var showOfflineModal by remember { mutableStateOf(false) }
+                    var consultedPlate by remember { mutableStateOf("") }
 
                     PlateResultScreen(
                         initialPlate = sifaViewModel.detectedPlate,
@@ -479,6 +484,7 @@ fun MainAppNavigation(
                         isLoading = coreViewModel.isLoading || isConsulting,
                         isManualEntry = sifaViewModel.isManualEntry,
                         onConsultClick = { finalPlate ->
+                            consultedPlate = finalPlate
                             sifaViewModel.detectedPlate = finalPlate
                             sifaViewModel.detectionError = null
                             coreViewModel.fetchVehicleInfo(finalPlate)
@@ -496,10 +502,47 @@ fun MainAppNavigation(
                     LaunchedEffect(isConsulting, coreViewModel.isLoading) {
                         if (isConsulting && !coreViewModel.isLoading) {
                             isConsulting = false
-                            if (coreViewModel.vehicleData != null) {
-                                tabsNavController.navigate("fiscalizacion/info_vehiculo")
+                            when {
+                                coreViewModel.vehicleQueryFailedOffline -> showOfflineModal = true
+                                coreViewModel.vehicleData != null ->
+                                    tabsNavController.navigate("fiscalizacion/info_vehiculo")
                             }
                         }
+                    }
+
+                    if (showOfflineModal) {
+                        AlertDialog(
+                            onDismissRequest = { showOfflineModal = false },
+                            title = { Text("Sin conexión") },
+                            text = {
+                                Text(
+                                    "No se pudo consultar los datos del vehículo por falta de internet " +
+                                        "o señal. Puedes continuar para emitir la infracción directamente, " +
+                                        "sin los datos del vehículo."
+                                )
+                            },
+                            confirmButton = {
+                                OutlinedButton(
+                                    onClick = {
+                                        showOfflineModal = false
+                                        tabsNavController.navigate("fiscalizacion/formulario")
+                                    }
+                                ) {
+                                    Text("Continuar sin datos")
+                                }
+                            },
+                            dismissButton = {
+                                Button(
+                                    onClick = {
+                                        showOfflineModal = false
+                                        coreViewModel.fetchVehicleInfo(consultedPlate)
+                                        isConsulting = true
+                                    }
+                                ) {
+                                    Text("Reintentar")
+                                }
+                            }
+                        )
                     }
                 }
 
