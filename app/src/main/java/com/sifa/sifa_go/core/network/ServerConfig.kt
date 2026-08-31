@@ -4,9 +4,9 @@ package com.sifa.sifa_go.core.network
  * Acá definimos la configuración del servidor, como la URL base y los tiempos de timeout para las solicitudes.
  */
 object ServerConfig {
-    const val BASE_URL = "http://3.214.183.222"
+    //const val BASE_URL = "http://52.3.93.209"
     //const val BASE_URL = "http://3.219.255.24"
-    //const val BASE_URL = "http://192.168.100.62:9000"
+    const val BASE_URL = "http://192.168.100.57:9000"
     const val CONNECT_TIMEOUT_SECONDS = 15L
     const val READ_TIMEOUT_SECONDS = 15L
     const val WRITE_TIMEOUT_SECONDS = 15L

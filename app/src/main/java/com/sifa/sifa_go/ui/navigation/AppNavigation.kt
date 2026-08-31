@@ -642,6 +642,7 @@ fun MainAppNavigation(
                     exitTransition = { fadeOut(tween(200)) }
                 ) {
                     TicketSuccessScreen(
+                        isQueuedOffline = coreViewModel.submittedOffline,
                         onAnimationFinished = {
                             sifaViewModel.clearProcess()
                             coreViewModel.clearData()
