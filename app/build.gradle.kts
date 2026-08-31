@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
 
     alias(libs.plugins.google.services)
 }
@@ -79,6 +80,7 @@ dependencies {
     // Biometría: Autenticación por huella digital o rostro
     implementation("androidx.biometric:biometric:1.1.0")
 
+    //
     // Google Play Services: Servicios de ubicación y GPS
     implementation(libs.play.services.location)
 
@@ -109,4 +111,12 @@ dependencies {
 
     // Dependencias para Firebase Messaging (Push notifications)
     implementation("com.google.firebase:firebase-messaging:24.1.0")
+
+    // Room: Base de datos SQLite local para la cola offline
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    // WorkManager: Envío de peticiones pendientes en segundo plano
+    implementation(libs.androidx.work.runtime)
 }
