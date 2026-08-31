@@ -26,7 +26,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
-import com.sifa.sifa_go.core.network.CoreRetrofitClient
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,35 +62,13 @@ fun TicketScreen(
     var expanded by remember { mutableStateOf(false) }
     var selectedTipo by remember { mutableStateOf<TipoInfraccionResponse?>(null) }
     var observaciones by remember { mutableStateOf("") }
-    var localTiposInfraccion by remember { mutableStateOf<List<TipoInfraccionResponse>>(tiposInfraccion) }
-    var isLoading by remember { mutableStateOf(tiposInfraccion.isEmpty()) }
     var fullscreenImagePath by remember { mutableStateOf<String?>(null) }
     var removeConfirmIndex by remember { mutableIntStateOf(-1) }
     val coroutineScope = rememberCoroutineScope()
     var showConfirmDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(tiposInfraccion) {
-        if (tiposInfraccion.isEmpty()) {
-            isLoading = true
-            try {
-                val response = CoreRetrofitClient.apiService.getAllTipoInfracciones()
-                if (response.isSuccessful) {
-                    localTiposInfraccion = response.body()?.content ?: emptyList()
-                } else {
-                    println("Error del servidor al cargar tipos en UI: ${response.code()}")
-                    localTiposInfraccion = emptyList()
-                }
-            } catch (e: Exception) {
-                println("Error cargando tipos de infraccion: $e")
-            } finally {
-                isLoading = false
-            }
-        } else if (tiposInfraccion.isNotEmpty()) {
-            localTiposInfraccion = tiposInfraccion
-        }
-    }
-
-    val displayTiposInfraccion = if (localTiposInfraccion.isNotEmpty()) localTiposInfraccion else tiposInfraccion
+    // Las tipologías provienen del ViewModel (que sirve la caché local si no hay red).
+    val displayTiposInfraccion = tiposInfraccion
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -203,7 +180,7 @@ fun TicketScreen(
             ) {
                 if (displayTiposInfraccion.isEmpty()) {
                     DropdownMenuItem(
-                        text = { Text(if (isLoading) "Cargando infracciones..." else "No hay infracciones disponibles") },
+                        text = { Text("No hay infracciones disponibles") },
                         onClick = { }
                     )
                 } else {

@@ -92,7 +92,7 @@ fun TicketSuccessScreen(
                     modifier = Modifier.size(28.dp)
                 )
                 Text(
-                    text = "Sin conexión: se enviará automáticamente al reconectar",
+                    text = "Se enviará automáticamente al reconectar",
                     color = Color.Gray,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 8.dp)

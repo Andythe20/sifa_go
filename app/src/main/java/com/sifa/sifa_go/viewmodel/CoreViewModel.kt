@@ -19,6 +19,8 @@ import com.sifa.sifa_go.infrastructure.offline.OfflineQueueRepositoryImpl
 import com.sifa.sifa_go.infrastructure.offline.SyncResult
 import com.sifa.sifa_go.domain.model.PendingInfraccion
 import com.sifa.sifa_go.domain.repository.OfflineQueueRepository
+import com.sifa.sifa_go.domain.repository.TipoInfraccionRepository
+import com.sifa.sifa_go.infrastructure.tipos.TipoInfraccionRepositoryImpl
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.File
@@ -34,6 +36,11 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
     /** Cola offline de infracciones (persistida en SQLite vía Room). */
     private val offlineQueueRepository: OfflineQueueRepository by lazy {
         OfflineQueueRepositoryImpl(SifaDatabase.getInstance(application).pendingInfraccionDao())
+    }
+
+    /** Caché local de tipologías de infracción (para operar sin conexión). */
+    private val tipoInfraccionRepository: TipoInfraccionRepository by lazy {
+        TipoInfraccionRepositoryImpl(SifaDatabase.getInstance(application).tipoInfraccionDao())
     }
 
     var vehicleData by mutableStateOf<PlateInfoResponse?>(null)
@@ -129,26 +136,37 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Función para obtener la lista de tipo de infracciones del backend
+    /**
+     * Carga las tipologías de infracción para el formulario.
+     *
+     * Estrategia cache-first: si no hay datos cargados, lee primero la caché local
+     * (funciona sin conexión). Luego intenta refrescar desde el backend; si tiene éxito
+     * guarda (upsert) la caché y actualiza la vista. Si no hay red, conserva la caché
+     * y solo informa del error cuando no se dispone de ningún dato local.
+     */
     fun fetchTiposInfraccion() {
         viewModelScope.launch {
+            // 1. Cargar la caché local de inmediato para que el formulario funcione offline.
+            if (tiposInfraccion.isEmpty()) {
+                tiposInfraccion = tipoInfraccionRepository.getCached()
+            }
+
             isLoadingTipos = true
             try {
                 val paginatedResponse = CoreRetrofitClient.apiService.getAllTipoInfracciones()
 
-                if (paginatedResponse.isSuccessful){
-                    // Extraemos la lista plana desde la llave 'content'
+                if (paginatedResponse.isSuccessful) {
                     val pageResponse = paginatedResponse.body()
+                    val fetched = pageResponse?.content ?: emptyList()
 
-                    // Si por alguna razón la respuesta completa o el content vienen nulos,
-                    // usamos el operador elvis (?:) para asignar una lista vacía segura.
-                    tiposInfraccion = pageResponse?.content ?: emptyList()
+                    // 2. Actualizar la caché local y la vista en un solo paso.
+                    tipoInfraccionRepository.saveAll(fetched)
+                    tiposInfraccion = fetched
                 } else {
                     errorMessage = "Error del servidor: ${paginatedResponse.code()}"
                 }
 
             } catch (e: HttpException) {
-                // Retrofit lanza HttpException cuando el backend responde con un error (400, 404, 500)
                 errorMessage = when (e.code()) {
                     404 -> "Tipo de infraccion no encontrado"
                     401 -> "Sesión expirada o token inválido." // Esto lo atajaremos con biometría luego
@@ -158,8 +176,10 @@ class CoreViewModel(application: Application) : AndroidViewModel(application) {
                 println("Core API HTTP Error: ${e.code()} - ${e.message()}")
 
             } catch (e: Exception) {
-                // Esto ocurre si no hay internet o el servidor está apagado (no hay respuesta HTTP)
-                errorMessage = "Error de conexión. Compruebe su acceso a internet."
+                // Sin conexión o servidor apagado: se conserva la caché local cargada en el paso 1.
+                if (tiposInfraccion.isEmpty()) {
+                    errorMessage = "Error de conexión. Compruebe su acceso a internet."
+                }
                 println("Core API Error de Red: $e")
 
             } finally {

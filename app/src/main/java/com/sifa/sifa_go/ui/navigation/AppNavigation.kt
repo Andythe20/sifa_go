@@ -588,6 +588,12 @@ fun MainAppNavigation(
                     var isTakingEvidencePhoto by remember { androidx.compose.runtime.mutableStateOf(false) }
                     var isFlashOn by remember { androidx.compose.runtime.mutableStateOf(false) }
 
+                    // Carga las tipologías de infracción (caché local + refresco de red) al entrar
+                    // al formulario, para que el catálogo esté disponible incluso sin conexión.
+                    LaunchedEffect(Unit) {
+                        coreViewModel.fetchTiposInfraccion()
+                    }
+
                     Box(modifier = Modifier.fillMaxSize()) {
                         val vehicleData = coreViewModel.vehicleData
                         if (vehicleData != null) {
