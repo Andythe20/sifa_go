@@ -1,13 +1,19 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Reglas de backup (Android <= 12 / API <= 30).
+   NOTA: los tokens de sesión (cifrados con Android Keystore) no deben salir del
+   dispositivo, ni siquiera como ciphertext. Se excluyen los archivos de prefs
+   sensibles del Auto Backup. El resto de datos de la app (Room, estado, etc.)
+   sí se sigue respaldando.
+   Ver https://developer.android.com/guide/topics/data/autobackup
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <!-- Sesión (tokens JWT) cifrados -->
+    <exclude domain="sharedpref" path="sifa_session_enc.xml"/>
+    <!-- FCM push token cifrado -->
+    <exclude domain="sharedpref" path="sifa_push_enc.xml"/>
+
+    <!-- Archivos legacy en texto plano (antes de la migración one-time) -->
+    <exclude domain="sharedpref" path="sifa_session.xml"/>
+    <exclude domain="sharedpref" path="sifa_push.xml"/>
 </full-backup-content>

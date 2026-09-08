@@ -172,13 +172,13 @@ Cuando se conceden, se dispara automáticamente `onStartGpsCalibration()` para c
 | `com.squareup.retrofit2:retrofit` | 2.9.0 | **Retrofit** — Cliente HTTP tipado para Android. Convierte APIs REST en interfaces Kotlin. Se usa para todas las llamadas al backend. |
 | `com.squareup.retrofit2:converter-gson` | 2.9.0 | **Converter Gson** — Plugin de Retrofit que serializa/deserializa automáticamente JSON a objetos Kotlin usando Gson. |
 | `com.squareup.okhttp3:okhttp` | (transitiva) | **OkHttp** — Cliente HTTP subyacente de Retrofit. Permite agregar interceptores como `AuthInterceptor`. |
-| `androidx.security:security-crypto` | **NO se usa** | El proyecto usa `SharedPreferences` sin cifrar. |
+| `androidx.security:security-crypto` | **NO se usa** | Deprecada por Google (2025-2026). Se usa **Android Keystore directo** (`core/security/KeystoreAesCipher.kt`) en su lugar. |
 
 ### Almacenamiento — SessionManager (`core/utils/SessionManager.kt`)
 
-Implementa la interfaz `SessionRepository` (`domain/repository/SessionRepository.kt`). Usa **`SharedPreferences`** con el archivo `sifa_session` en modo privado (`Context.MODE_PRIVATE`).
+Implementa la interfaz `SessionRepository` (`domain/repository/SessionRepository.kt`). Usa **`SharedPreferences`** con el archivo **`sifa_session_enc`** en modo privado (`Context.MODE_PRIVATE`), pero **todos los valores se cifran** con **AES/GCM** respaldado por una clave maestro del **Android Keystore** (`core/security/KeystoreAesCipher.kt`). En disco solo existe ciphertext Base64; la clave maestro nunca sale del hardware (TEE/StrongBox).
 
-**Datos almacenados:**
+**Datos almacenados (cifrados):**
 
 | Clave | Contenido |
 |-------|-----------|
@@ -187,9 +187,20 @@ Implementa la interfaz `SessionRepository` (`domain/repository/SessionRepository
 | `TOKEN_EXPIRY` | Timestamp `exp` del JWT (segundos desde epoch) |
 | `TOKEN_IAT` | Timestamp `iat` del JWT |
 | `USERNAME` | `sub` del JWT (email del usuario) |
-| `ROLES` | Set de strings con los roles (ej: `["USER_APP"]`) |
+| `ROLES` | Roles serializados como texto (separados por `\n`), cifrados |
 
-**No se usa `EncryptedSharedPreferences`** — los tokens se almacenan en texto plano en el almacenamiento interno de la app, que por defecto no es accesible por otras apps en dispositivos no root.
+**Formato del ciphertext:** `Base64(IV[12 bytes] || ciphertextGCM)`. El tag GCM (128 bits) de autenticación va incluido al final del ciphertext.
+
+**Cifrado de sesión — Android Keystore (no EncryptedSharedPreferences):**
+
+- `EncryptedSharedPreferences` fue **deprecada** por Google (librería `androidx.security:security-crypto` congelada). La recomendación oficial es el uso directo del **Android Keystore** (`KeyGenerator` + `KeyGenParameterSpec`) o Google Tink.
+- `KeystoreAesCipher` genera una clave AES-256 en el Keystore bajo el alias `sifa_keystore_master_key`, con `AES/GCM/NoPadding` y IV aleatorio por operación (GCM es autenticado: detecta manipulación/corrupción).
+- La clave **no** se vincula a autenticación biométrica: así sobrevive el cambio de huellas/rostro (la biometría es un feature aparte de la app).
+- Manejo de fallos: dato manipulado (`AEADBadTagException`) → devuelve `null` **sin** borrar la clave; clave invalidada/eliminada del Keystore (`KeyPermanentlyInvalidatedException`) → se invalida localmente y se devuelve `null`, lo que fuerza un logout limpio (re-login).
+
+**Migración one-time:** al arrancar, `SessionManager(context)` y `SharedPreferencesPushTokenRepository(context)` ejecutan `StorageMigration` (`core/security/StorageMigration.kt`): leen el archivo legacy en texto plano (`sifa_session` / `sifa_push`), re-cifran los valores y **borran el archivo legacy** (`deleteSharedPreferences`). La operación es idempotente (flag `MIGRATED_V1`, escrita al final con `commit()`).
+
+**Exclusión de backup:** los archivos `sifa_session_enc.xml` y `sifa_push_enc.xml` (y los legacy) están excluidos del backup en nube y de la transferencia dispositivo-a-dispositivo (`res/xml/backup_rules.xml` para API ≤ 30 y `res/xml/data_extraction_rules.xml` para API ≥ 31). El resto de datos (Room, estado, etc.) sí se respalda.
 
 **Evento de sesión expirada:** `SessionManager` expone un `SharedFlow<Unit>` llamado `sessionExpiredEvent` que es emitido desde `AuthInterceptor` cuando el refresh token también expira. En `AppNavigation` se recolecta este evento para redirigir al login.
 
