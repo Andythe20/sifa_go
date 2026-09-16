@@ -1,19 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+   Reglas de extracción de datos (Android 12+ / API >= 31).
+   El riesgo de exfiltración de tokens existe tanto en el backup en la nube como
+   en la transferencia dispositivo-a-dispositivo (Device Transfer). Se excluyen
+   los prefs sensibles en AMBOS casos; el resto de datos sí se transfiere/backupea.
+   Ver https://developer.android.com/about/versions/12/backup-restore#xml-changes
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <exclude domain="sharedpref" path="sifa_session_enc.xml"/>
+        <exclude domain="sharedpref" path="sifa_push_enc.xml"/>
+        <exclude domain="sharedpref" path="sifa_session.xml"/>
+        <exclude domain="sharedpref" path="sifa_push.xml"/>
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <exclude domain="sharedpref" path="sifa_session_enc.xml"/>
+        <exclude domain="sharedpref" path="sifa_push_enc.xml"/>
+        <exclude domain="sharedpref" path="sifa_session.xml"/>
+        <exclude domain="sharedpref" path="sifa_push.xml"/>
     </device-transfer>
-    -->
 </data-extraction-rules>

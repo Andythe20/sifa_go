@@ -5,8 +5,8 @@ package com.sifa.sifa_go.core.network
  */
 object ServerConfig {
     //const val BASE_URL = "http://52.3.93.209"
-    //const val BASE_URL = "http://3.219.255.24"
-    const val BASE_URL = "http://192.168.100.57:9000"
+    //const val BASE_URL = "http://100.51.132.81"
+    //const val BASE_URL = "http://192.168.100.57:9000"
     const val CONNECT_TIMEOUT_SECONDS = 15L
     const val READ_TIMEOUT_SECONDS = 15L
     const val WRITE_TIMEOUT_SECONDS = 15L
